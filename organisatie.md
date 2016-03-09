@@ -8,15 +8,15 @@ In de classes hieronder is slechts de public interface weergegeven.
 template <typename T>
 class Maybe{
 public:
-  Maybe(T value); //constructs a Just(v)
+    Maybe(T value); //constructs a Just(v)
     
     static Maybe<T> Nothing(); //makes a Nothing() for you
 
-  T fromJust() const; //gets the Just-value from the container, assuming it isn't Nothing
-  T fromMaybe(T &def) const; //gets the Just-value if there is one, or a copy of `def` if it's Nothing
+    T fromJust() const; //gets the Just-value from the container, assuming it isn't Nothing
+    T fromMaybe(T &def) const; //gets the Just-value if there is one, or a copy of `def` if it's Nothing
 
-  bool isJust() const; //query whether this is a Just-value
-  bool isNothing() const; //query whether this is Nothing (==!isJust())
+    bool isJust() const; //query whether this is a Just-value
+    bool isNothing() const; //query whether this is Nothing (==!isJust())
 };
 ```
 
@@ -24,14 +24,14 @@ public:
 template <typename T,typename U>
 class Either{
 public:
-  static Either<T,U> Left(T value); //makes a Left-value for you
-  static Either<T,U> Right(U value); //makes a Right-value for you
-    
-  T fromLeft(void) const; //gets the Left-value, assuming it is one
-  U fromRight(void) const; //gets the Right-value, assuming it is one
+    static Either<T,U> Left(T value); //makes a Left-value for you
+    static Either<T,U> Right(U value); //makes a Right-value for you
+      
+    T fromLeft(void) const; //gets the Left-value, assuming it is one
+    U fromRight(void) const; //gets the Right-value, assuming it is one
 
-  bool isLeft(void) const; //query whether this is a Left-value
-  bool isRight(void) const; //query whether this is a Right-value
+    bool isLeft(void) const; //query whether this is a Left-value
+    bool isRight(void) const; //query whether this is a Right-value
 };
 ```
 
@@ -47,13 +47,13 @@ using Errtype = Maybe<string>; //if there can be an error or nothing
 ```cpp
 class CellAddress{
 public:
-  unsigned int row,column; //left-top is (0,0)!
+    unsigned int row,column; //left-top is (0,0)!
     // . . . .
     // . . . .
     // . # . .  <- that # is at (1,2) in documentation, and on row 2, column 1, and has representation "B3".
     // . . . .
 
-  static Maybe<CellAddress> fromRepresentation(string repr); //converts something like "A1" to a CellAddress
+    static Maybe<CellAddress> fromRepresentation(string repr); //converts something like "A1" to a CellAddress
     
     string toRepresentation(); //returns a string representation of this
 };
@@ -92,7 +92,7 @@ public:
 ```cpp
 class SheetView{
 public:
-  void redrawCell(CellAddress addr); //redraws the cell at that address (probably a changed cell);
+    void redrawCell(CellAddress addr); //redraws the cell at that address (probably a changed cell);
                                        //method can be implemented to do nothing if outside screen
     void redraw(); //redraws entire (visible) screen
 
@@ -114,10 +114,10 @@ public:
 ```cpp
 class SheetController{
 public:
-  SheetController(); //normal initialisation
+    SheetController(); //normal initialisation
     SheetController(string filename); //initialises the controller with a filename given on the command line
 
-  ErrorOr<string> cellString(CellAddress addr); //queries the Model for the display cell string; called by
+    ErrorOr<string> cellString(CellAddress addr); //queries the Model for the display cell string; called by
                                                   //view on redrawing. Should also ensureSheetSize on the Model
 };
 ```
