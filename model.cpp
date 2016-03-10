@@ -2,6 +2,25 @@
 #include "util.h"
 #include <stdexcept>
 
+class Cell{
+	vector<CellAddress> revdeps; //reverse dependencies: cells that depend on this one
+	const CellAddress addr; //address of this cell in sheet
+
+public:
+	Cell(CellAddress addr);
+	virtual ~Cell();
+
+	//returns a newly made cell with this value, and its dependencies
+	//addr is its location in the sheet
+	static pair<Cell*,vector<CellAddress>> cellFromString(string s,CellAddress addr,const CellArray &cells);
+
+	//returns dependencies of the cell after change, or Nothing if no valid parse
+	virtual Maybe<vector<CellAddress>> setFromString(string s,const CellArray &cells) = 0;
+
+	virtual string getDisplayString() const = 0;
+	virtual string getEditString() const = 0;
+};
+
 template <typename T>
 class CellBasic : public Cell{
 	T value;
