@@ -2,6 +2,53 @@
 #include "util.h"
 #include <stdexcept>
 
+template <typename T>
+class CellBasic : public Cell{
+	T value;
+
+public:
+	//Cell interface:
+	using Cell::Cell;
+
+	Maybe<vector<CellAddress>> setFromString(string s,const CellArray &cells);
+	string getDisplayString() const;
+	string getEditString() const;
+
+	//Own interface:
+	void setFromValue(T newval);
+};
+
+class CellFormula : public Cell{
+public:
+	using Cell::Cell;
+
+	Maybe<vector<CellAddress>> setFromString(string s,const CellArray &cells);
+	string getDisplayString() const;
+	string getEditString() const;
+};
+
+class CellError : public Cell{
+	string errString;
+	string editString;
+
+public:
+	using Cell::Cell;
+
+	Maybe<vector<CellAddress>> setFromString(string s,const CellArray &cells);
+	string getDisplayString() const;
+	string getEditString() const;
+};
+
+class CellEmpty : public Cell{
+public:
+	using Cell::Cell;
+
+	Maybe<vector<CellAddress>> setFromString(string s,const CellArray &cells);
+	string getDisplayString() const;
+	string getEditString() const;
+};
+
+
 Spreadsheet::~Spreadsheet(){
 	for(vector<Cell*> &row : cells){
 		for(Cell *cell : row){
