@@ -3,6 +3,7 @@
 #include "maybe.h"
 #include "util.h"
 #include <string>
+#include <stdexcept>
 
 using namespace std;
 
@@ -13,7 +14,14 @@ template <>
 Maybe<int> convertstring<int>(string s){
 	s=trimright(s);
 	size_t endpos;
-	int intval=stoi(s,&endpos,0);
+	int intval;
+	try {
+		intval=stoi(s,&endpos,0);
+	} catch(invalid_argument e){
+		return Nothing();
+	} catch(out_of_range e){
+		return Nothing();
+	}
 	if(endpos!=s.size())return Nothing();
 	return intval;
 }
@@ -22,7 +30,14 @@ template <>
 Maybe<double> convertstring<double>(string s){
 	s=trimright(s);
 	size_t endpos;
-	double doubleval=stod(s,&endpos);
+	double doubleval;
+	try {
+		doubleval=stod(s,&endpos);
+	} catch(invalid_argument e){
+		return Nothing();
+	} catch(out_of_range e){
+		return Nothing();
+	}
 	if(endpos!=s.size())return Nothing();
 	return doubleval;
 }

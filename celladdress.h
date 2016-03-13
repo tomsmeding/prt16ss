@@ -19,3 +19,10 @@ public:
 
 	string toRepresentation() const; //returns a string representation of this
 };
+
+namespace std{
+	template <>
+	struct less<CellAddress>{
+		bool operator()(const CellAddress &a,const CellAddress &b);
+	};
+}

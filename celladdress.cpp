@@ -23,6 +23,7 @@ Maybe<CellAddress> CellAddress::fromRepresentation(string repr){
 		}
 		row=10*row+repr[i]-'0';
 	}
+	row--;
 	return CellAddress(row,column);
 }
 
@@ -42,4 +43,11 @@ string CellAddress::toRepresentation() const {
 		}
 	}
 	return string(rev.crbegin(),rev.crend())+to_string(column+1);
+}
+
+
+namespace std{
+	bool less<CellAddress>::operator()(const CellAddress &a,const CellAddress &b){
+		return a.row<b.row||(a.row==b.row&&a.column<b.column);
+	}
 }
