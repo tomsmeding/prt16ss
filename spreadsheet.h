@@ -1,9 +1,10 @@
+#pragma once
+
 #include "types.h"
 #include "celladdress.h"
 #include <vector>
 #include <set>
 #include <string>
-#include <utility>
 
 using namespace std;
 
