@@ -29,7 +29,7 @@ Maybe<CellAddress> CellAddress::fromRepresentation(string repr){
 
 string CellAddress::toRepresentation() const {
 	string rev;
-	unsigned int r=row;
+	unsigned int r=column+1;
 	while(r){
 		switch(r%26){
 			case 0:
@@ -42,7 +42,7 @@ string CellAddress::toRepresentation() const {
 				break;
 		}
 	}
-	return string(rev.crbegin(),rev.crend())+to_string(column+1);
+	return string(rev.crbegin(),rev.crend())+to_string(row+1);
 }
 
 
