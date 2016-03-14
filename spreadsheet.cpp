@@ -67,8 +67,7 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 	for(const CellAddress &depaddr : oldcell->getDependencies()){
 		cells[depaddr.row][depaddr.column]->removeReverseDependency(addr);
 	}
-	pair<Cell*,vector<CellAddress>> newcellpair=Cell::cellFromString(repr,addr,cells);
-	Cell *newcell=newcellpair.first;
+	Cell *newcell=Cell::cellFromString(repr,addr);
 	newcell->addReverseDependencies(oldcell->getReverseDependencies());
 	for(const CellAddress &depaddr : newcell->getDependencies()){
 		cells[depaddr.row][depaddr.column]->addReverseDependency(addr);
@@ -83,9 +82,8 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 	for(const CellAddress &depaddr : newcell->getDependencies()){
 		cells[depaddr.row][depaddr.column]->removeReverseDependency(addr);
 	}
-	CellError *errorcell=new CellError(addr);
+	CellError *errorcell=new CellError(addr,newcell->getEditString());
 	errorcell->setErrorString("Circular reference chain");
-	errorcell->setEditString(newcell->getEditString(),cells);
 	errorcell->addReverseDependencies(newcell->getReverseDependencies());
 	delete newcell;
 	cells[addr.row][addr.column]=errorcell;

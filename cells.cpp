@@ -15,34 +15,31 @@ Cell::Cell(CellAddress addr)
 
 Cell::~Cell(){}
 
-pair<Cell*,vector<CellAddress>> Cell::cellFromString(string s,CellAddress addr,const CellArray &cells){
+Cell* Cell::cellFromString(string s,CellAddress addr){
 	Maybe<int> intval=convertstring<int>(s);
 	if(intval.isJust()){
 		CellBasic<int> *cell=new CellBasic<int>(addr);
 		cell->setFromValue(intval.fromJust());
-		return make_pair(cell,vector<CellAddress>());
+		return cell;
 	}
 	Maybe<double> doubleval=convertstring<double>(s);
 	if(doubleval.isJust()){
 		CellBasic<double> *cell=new CellBasic<double>(addr);
 		cell->setFromValue(doubleval.fromJust());
-		return make_pair(cell,vector<CellAddress>());
+		return cell;
 	}
 	if(s.size()&&s[0]=='='){
 		CellFormula *cell=new CellFormula(addr);
-		Maybe<vector<CellAddress>> deps=cell->setEditString(s,cells);
-		if(deps.isNothing()){
+		if(!cell->setEditString(s)){
 			delete cell;
-			CellError *cell=new CellError(addr);
+			CellError *cell=new CellError(addr,s);
 			cell->setErrorString("Invalid formula");
-			cell->setEditString(s,cells);
-			return make_pair(cell,vector<CellAddress>());
 		}
-		return make_pair(cell,deps.fromJust());
+		return cell;
 	}
 	CellBasic<string> *cell=new CellBasic<string>(addr);
 	cell->setFromValue(s);
-	return make_pair(cell,vector<CellAddress>());
+	return cell;
 }
 
 bool Cell::addReverseDependency(CellAddress addr){
@@ -69,12 +66,12 @@ const set<CellAddress>& Cell::getReverseDependencies() const {
 
 
 template <typename T>
-Maybe<vector<CellAddress>> CellBasic<T>::setEditString(string s,const CellArray&){
+bool CellBasic<T>::setEditString(string s){
 	s=trim(s);
 	Maybe<T> mnewval=convertstring<T>(s);
-	if(mnewval.isNothing())return Nothing();
+	if(mnewval.isNothing())return false;
 	value=mnewval.fromJust();
-	return vector<CellAddress>();
+	return true;
 }
 
 template <typename T>
@@ -110,7 +107,7 @@ void CellBasic<T>::setFromValue(T newval){
 CellFormula::CellFormula(CellAddress addr)
 	:Cell(addr),isstring(true){}
 
-Maybe<vector<CellAddress>> CellFormula::setEditString(string,const CellArray &){
+bool CellFormula::setEditString(string){
 	//STUB
 }
 
@@ -133,8 +130,11 @@ vector<CellAddress> CellFormula::getDependencies() const {
 
 
 
-Maybe<vector<CellAddress>> CellError::setEditString(string,const CellArray &){
-	return Nothing();
+CellError::CellError(CellAddress addr,const string &editString)
+	:Cell(addr),editString(editString){}
+
+bool CellError::setEditString(string){
+	return false;
 }
 
 string CellError::getDisplayString() const {

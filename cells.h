@@ -17,9 +17,10 @@ public:
 	Cell(CellAddress addr);
 	virtual ~Cell();
 
-	//returns a newly made cell with this value, and its dependencies
-	//addr is its location in the sheet
-	static pair<Cell*,vector<CellAddress>> cellFromString(string s,CellAddress addr,const CellArray &cells);
+	//returns a newly made cell with this value
+	//addr is its location in the sheet;
+	//not updated yet, do that with cell->update()
+	static Cell* cellFromString(string s,CellAddress addr);
 
 	const set<CellAddress>& getReverseDependencies() const; //returns set of cells dependent on this cell
 
@@ -28,8 +29,9 @@ public:
 	bool removeReverseDependency(CellAddress addr); //false indicates not present
 
 
-	//returns dependencies of the cell after change, or Nothing if no valid parse
-	virtual Maybe<vector<CellAddress>> setEditString(string s,const CellArray &cells) = 0;
+	//returns whether the value was successfully parsed for this type of cell;
+	//doesn't update the cell's contents, do that with update()
+	virtual bool setEditString(string s) = 0;
 
 	virtual string getDisplayString() const = 0;
 	virtual string getEditString() const = 0;
@@ -48,7 +50,7 @@ public:
 	//Cell interface:
 	using Cell::Cell;
 
-	Maybe<vector<CellAddress>> setEditString(string s,const CellArray &cells);
+	bool setEditString(string s);
 	string getDisplayString() const;
 	string getEditString() const;
 
@@ -65,11 +67,12 @@ class CellFormula : public Cell{
 	string stringval;
 	bool isstring;
 	string editString;
+	vector<CellAddress> parsed;
 
 public:
 	CellFormula(CellAddress addr);
 
-	Maybe<vector<CellAddress>> setEditString(string s,const CellArray &cells);
+	bool setEditString(string s);
 	string getDisplayString() const;
 	string getEditString() const;
 
@@ -84,9 +87,10 @@ class CellError : public Cell{
 
 public:
 	//Cell interface:
-	using Cell::Cell;
+	// using Cell::Cell;
+	CellError(CellAddress addr,const string &editString);
 
-	Maybe<vector<CellAddress>> setEditString(string s,const CellArray &cells);
+	bool setEditString(string s);
 	string getDisplayString() const;
 	string getEditString() const;
 
