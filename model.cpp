@@ -2,6 +2,8 @@
 #include "util.h"
 #include "conversion.h"
 #include <stdexcept>
+#include <climits>
+#include <cassert>
 
 class Cell{
 	set<CellAddress> revdeps; //reverse dependencies: cells that depend on this one
@@ -15,6 +17,13 @@ public:
 	//addr is its location in the sheet
 	static pair<Cell*,vector<CellAddress>> cellFromString(string s,CellAddress addr,const CellArray &cells);
 
+	const set<CellAddress>& getReverseDependencies() const; //returns set of cells dependent on this cell
+
+	bool addReverseDependency(CellAddress addr); //false indicates already present
+	void addReverseDependencies(const set<CellAddress> &addrs); //bulk version of addReverseDependency
+	bool removeReverseDependency(CellAddress addr); //false indicates not present
+
+
 	//returns dependencies of the cell after change, or Nothing if no valid parse
 	virtual Maybe<vector<CellAddress>> setEditString(string s,const CellArray &cells) = 0;
 
@@ -24,12 +33,7 @@ public:
 	//updates the cell, using possibly changed values of its dependencies
 	virtual void update(const CellArray &cells) = 0;
 
-	bool addReverseDependency(CellAddress addr); //false indicates already present
-	void addReverseDependencies(const set<CellAddress> &addrs); //bulk version of addReverseDependency
-	bool removeReverseDependency(CellAddress addr); //false indicates not present
-
-	vector<CellAddress> getDependencies() const; //returns list of dependencies for this cell
-	const set<CellAddress>& getReverseDependencies() const; //returns set of cells dependent on this cell
+	virtual vector<CellAddress> getDependencies() const = 0; //returns list of dependencies for this cell
 };
 
 template <typename T>
@@ -46,19 +50,28 @@ public:
 
 	void update(const CellArray &cells);
 
+	vector<CellAddress> getDependencies() const;
+
 	//Own interface:
 	void setFromValue(T newval);
 };
 
 class CellFormula : public Cell{
+	double doubleval;
+	string stringval;
+	bool isstring;
+	string editString;
+
 public:
-	using Cell::Cell;
+	CellFormula(CellAddress addr);
 
 	Maybe<vector<CellAddress>> setEditString(string s,const CellArray &cells);
 	string getDisplayString() const;
 	string getEditString() const;
 
 	void update(const CellArray &cells);
+
+	vector<CellAddress> getDependencies() const;
 };
 
 class CellError : public Cell{
@@ -74,6 +87,8 @@ public:
 	string getEditString() const;
 
 	void update(const CellArray &cells);
+
+	vector<CellAddress> getDependencies() const;
 
 	//Own interface:
 	void setErrorString(string s);
@@ -141,15 +156,25 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularref
 
 Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr){
 	if(!inBounds(addr))return Nothing();
-	Cell *cell=cells[addr.row][addr.column];
-	Cell *newcell=Cell::cellFromString(repr,addr,cells).first;
-	newcell->addReverseDependencies(cell->getReverseDependencies());
-	delete cell;
+	Cell *oldcell=cells[addr.row][addr.column];
+	for(const CellAddress &depaddr : oldcell->getDependencies()){
+		cells[depaddr.row][depaddr.column]->removeReverseDependency(addr);
+	}
+	pair<Cell*,vector<CellAddress>> newcellpair=Cell::cellFromString(repr,addr,cells);
+	Cell *newcell=newcellpair.first;
+	newcell->addReverseDependencies(oldcell->getReverseDependencies());
+	for(const CellAddress &depaddr : newcell->getDependencies()){
+		cells[depaddr.row][depaddr.column]->addReverseDependency(addr);
+	}
+	delete oldcell;
 	cells[addr.row][addr.column]=newcell;
 	bool circularrefs;
 	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs);
 	if(!circularrefs){
 		return changed;
+	}
+	for(const CellAddress &depaddr : newcell->getDependencies()){
+		cells[depaddr.row][depaddr.column]->removeReverseDependency(addr);
 	}
 	CellError *errorcell=new CellError(addr);
 	errorcell->setErrorString("Circular reference chain");
@@ -161,6 +186,7 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 }
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){
+	assert(width!=-1U&&height!=-1U); //protection against error values
 	for(size_t y=0;y<cells.size();y++){
 		while(cells[y].size()<width){
 			cells[y].push_back(new CellBasic<string>(CellAddress(y,cells[y].size())));
@@ -182,7 +208,7 @@ Cell::Cell(CellAddress addr)
 
 Cell::~Cell(){}
 
-pair<Cell*,vector<CellAddress>> Cell::cellFromString(string s,CellAddress addr,const CellArray &){
+pair<Cell*,vector<CellAddress>> Cell::cellFromString(string s,CellAddress addr,const CellArray &cells){
 	Maybe<int> intval=convertstring<int>(s);
 	if(intval.isJust()){
 		CellBasic<int> *cell=new CellBasic<int>(addr);
@@ -195,10 +221,18 @@ pair<Cell*,vector<CellAddress>> Cell::cellFromString(string s,CellAddress addr,c
 		cell->setFromValue(doubleval.fromJust());
 		return make_pair(cell,vector<CellAddress>());
 	}
-	/*if(s.size()&&s[0]=='='){
-		//formula
-		//on parse error, make cellerror
-	}*/
+	if(s.size()&&s[0]=='='){
+		CellFormula *cell=new CellFormula(addr);
+		Maybe<vector<CellAddress>> deps=cell->setEditString(s,cells);
+		if(deps.isNothing()){
+			delete cell;
+			CellError *cell=new CellError(addr);
+			cell->setErrorString("Invalid formula");
+			cell->setEditString(s,cells);
+			return make_pair(cell,vector<CellAddress>());
+		}
+		return make_pair(cell,deps.fromJust());
+	}
 	CellBasic<string> *cell=new CellBasic<string>(addr);
 	cell->setFromValue(s);
 	return make_pair(cell,vector<CellAddress>());
@@ -237,11 +271,6 @@ Maybe<vector<CellAddress>> CellBasic<T>::setEditString(string s,const CellArray&
 }
 
 template <typename T>
-void CellBasic<T>::setFromValue(T newval){
-	value=newval;
-}
-
-template <typename T>
 string CellBasic<T>::getDisplayString() const {
 	return to_string(value);
 }
@@ -259,6 +288,42 @@ string CellBasic<T>::getEditString() const {
 template <typename T>
 void CellBasic<T>::update(const CellArray &){}
 
+template <typename T>
+vector<CellAddress> CellBasic<T>::getDependencies() const {
+	return vector<CellAddress>();
+}
+
+template <typename T>
+void CellBasic<T>::setFromValue(T newval){
+	value=newval;
+}
+
+
+
+CellFormula::CellFormula(CellAddress addr)
+	:Cell(addr),isstring(true){}
+
+Maybe<vector<CellAddress>> CellFormula::setEditString(string,const CellArray &){
+	//STUB
+}
+
+string CellFormula::getDisplayString() const {
+	if(isstring)return stringval;
+	else return to_string(doubleval);
+}
+
+string CellFormula::getEditString() const {
+	return editString;
+}
+
+void CellFormula::update(const CellArray &){
+	//STUB
+}
+
+vector<CellAddress> CellFormula::getDependencies() const {
+	//STUB
+}
+
 
 
 Maybe<vector<CellAddress>> CellError::setEditString(string,const CellArray &){
@@ -270,10 +335,14 @@ string CellError::getDisplayString() const {
 }
 
 string CellError::getEditString() const {
-	return "";
+	return editString;
 }
 
 void CellError::update(const CellArray &){}
+
+vector<CellAddress> CellError::getDependencies() const {
+	return vector<CellAddress>();
+}
 
 void CellError::setErrorString(string s){
 	errString=s;

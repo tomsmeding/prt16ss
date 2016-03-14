@@ -28,7 +28,7 @@ public:
 	~Spreadsheet();
 
 	Errtype saveToDisk(string fname) const; //asks the model to save itself to the specified file
-	ErrorOr<string> loadFromDisk(string fname); //asks the model to load itself from the specified file
+	Errtype loadFromDisk(string fname); //asks the model to load itself from the specified file
 
 	Maybe<string> getCellDisplayString(CellAddress addr) const; //gets string for that cell for display in the sheet;
 	                                                            //(Nothing if out of bounds)
