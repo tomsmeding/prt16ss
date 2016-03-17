@@ -3,6 +3,10 @@
 #include <vector>
 #include <cassert>
 
+Spreadsheet::Spreadsheet(unsigned int width,unsigned int height){
+	ensureSheetSize(width,height);
+}
+
 Spreadsheet::~Spreadsheet(){
 	for(const vector<Cell*> &row : cells){
 		for(Cell *cell : row){

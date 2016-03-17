@@ -26,6 +26,8 @@ class Spreadsheet{
 	set<CellAddress> recursiveUpdate(CellAddress addr,bool *circularrefs=nullptr);
 
 public:
+	Spreadsheet() = default;
+	Spreadsheet(unsigned int width,unsigned int height);
 	~Spreadsheet();
 
 	Errtype saveToDisk(string fname) const; //asks the model to save itself to the specified file
