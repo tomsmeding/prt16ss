@@ -87,7 +87,7 @@ class CellError : public Cell{
 
 public:
 	//Cell interface:
-	// using Cell::Cell;
+	// using Cell::Cell; //explicitly not using the default Cell constructor
 	CellError(CellAddress addr,const string &editString);
 
 	bool setEditString(string s);

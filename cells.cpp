@@ -107,8 +107,22 @@ void CellBasic<T>::setFromValue(T newval){
 CellFormula::CellFormula(CellAddress addr)
 	:Cell(addr),isstring(true){}
 
-bool CellFormula::setEditString(string){
-	//STUB
+bool CellFormula::setEditString(string s){ //STUB
+	size_t cursor=0,idx,sz=s.size();
+	parsed.clear();
+	while(cursor<sz){
+		idx=s.find(' ',cursor);
+		if(idx==string::npos)idx=sz;
+		Maybe<CellAddress> mca=CellAddress::fromRepresentation(s.substr(cursor,idx-cursor));
+		if(mca.isNothing()){
+			parsed.clear();
+			return false;
+		}
+		for(cursor=idx;cursor<sz;cursor++){
+			if(s[cursor]!=' ')break;
+		}
+	}
+	return true;
 }
 
 string CellFormula::getDisplayString() const {
@@ -120,12 +134,21 @@ string CellFormula::getEditString() const {
 	return editString;
 }
 
-void CellFormula::update(const CellArray &){
-	//STUB
+void CellFormula::update(const CellArray &cells){ //STUB
+	isstring=true;
+	stringval.clear();
+	size_t sz=parsed.size();
+	for(size_t i=0;i<sz;i++){
+		if(i!=0)stringval+=' ';
+		if(parsed[i].row>=cells.size()||parsed[i].column>=cells[0].size()){
+			//FIX THIS
+			stringval+="???";
+		}
+	}
 }
 
-vector<CellAddress> CellFormula::getDependencies() const {
-	//STUB
+vector<CellAddress> CellFormula::getDependencies() const { //STUB
+	return parsed;
 }
 
 
