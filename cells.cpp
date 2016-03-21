@@ -140,7 +140,7 @@ void CellFormula::update(const CellArray &cells){ //STUB
 	size_t sz=parsed.size();
 	for(size_t i=0;i<sz;i++){
 		if(i!=0)stringval+=' ';
-		if(parsed[i].row>=cells.size()||parsed[i].column>=cells[0].size()){
+		if(parsed[i].row>=cells.height()||parsed[i].column>=cells.width()){
 			//FIX THIS
 			stringval+="???";
 		}

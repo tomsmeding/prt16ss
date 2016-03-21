@@ -46,6 +46,11 @@ string CellAddress::toRepresentation() const {
 }
 
 
+bool operator==(const CellAddress &a,const CellAddress &b){
+	return a.row==b.row&&a.column==b.column;
+}
+
+
 namespace std{
 	bool less<CellAddress>::operator()(const CellAddress &a,const CellAddress &b){
 		return a.row<b.row||(a.row==b.row&&a.column<b.column);
