@@ -1,4 +1,5 @@
 #pragma once
+
 #include "celladdress.h"
 #include "maybe.h"
 #include "spreadsheet.h"
@@ -9,18 +10,23 @@
 
 using namespace std;
 
+class CellValue;
+
 class Cell{
+	CellValue *value;
 	set<CellAddress> revdeps; //reverse dependencies: cells that depend on this one
 	const CellAddress addr; //address of this cell in sheet
 
+	Cell(CellValue *value,CellAddress addr);
+
 public:
 	Cell(CellAddress addr);
-	virtual ~Cell();
+	Cell(string editString,CellAddress addr); //doesn't update() yet!
+	~Cell();
 
-	//returns a newly made cell with this value
-	//addr is its location in the sheet;
-	//not updated yet, do that with cell->update()
-	static Cell* cellFromString(string s,CellAddress addr);
+	static Cell makeErrorCell(string errString,string editString,CellAddress addr);
+
+	void setError(string errString);
 
 	const set<CellAddress>& getReverseDependencies() const; //returns set of cells dependent on this cell
 
@@ -28,10 +34,26 @@ public:
 	void addReverseDependencies(const set<CellAddress> &addrs); //bulk version of addReverseDependency
 	bool removeReverseDependency(CellAddress addr); //false indicates not present
 
+	//doesn't update the cell's display string, do that with update()
+	void setEditString(string s);
 
-	//returns whether the value was successfully parsed for this type of cell;
-	//doesn't update the cell's contents, do that with update()
-	virtual bool setEditString(string s) = 0;
+	string getDisplayString() const;
+	string getEditString() const;
+
+	//updates the cell, using possibly changed values of its dependencies
+	void update(const CellArray &cells);
+
+	vector<CellAddress> getDependencies() const; //returns list of dependencies for this cell
+};
+
+class CellValue{
+public:
+	virtual ~CellValue();
+
+	//returns a newly made cell with this value
+	//addr is its location in the sheet;
+	//not updated yet, do that with update()
+	static CellValue* cellValueFromString(string s);
 
 	virtual string getDisplayString() const = 0;
 	virtual string getEditString() const = 0;
@@ -43,36 +65,34 @@ public:
 };
 
 template <typename T>
-class CellBasic : public Cell{
+class CellValueBasic : public CellValue{
 	T value;
 
 public:
-	//Cell interface:
-	using Cell::Cell;
+	CellValueBasic(T value);
 
-	bool setEditString(string s);
 	string getDisplayString() const;
 	string getEditString() const;
 
 	void update(const CellArray &cells);
 
 	vector<CellAddress> getDependencies() const;
-
-	//Own interface:
-	void setFromValue(T newval);
 };
 
-class CellFormula : public Cell{
+class CellValueFormula : public CellValue{
 	double doubleval;
 	string stringval;
 	bool isstring;
 	string editString;
 	vector<CellAddress> parsed;
 
-public:
-	CellFormula(CellAddress addr);
+	CellValueFormula() = default;
 
-	bool setEditString(string s);
+public:
+	//returns Nothing() on parse error
+	//not update()'d yet!
+	static Maybe<CellValueFormula*> parseAndCreateFormula(string s);
+
 	string getDisplayString() const;
 	string getEditString() const;
 
@@ -81,23 +101,17 @@ public:
 	vector<CellAddress> getDependencies() const;
 };
 
-class CellError : public Cell{
+class CellValueError : public CellValue{
 	string errString;
 	string editString;
 
 public:
-	//Cell interface:
-	// using Cell::Cell; //explicitly not using the default Cell constructor
-	CellError(CellAddress addr,const string &editString);
+	CellValueError(const string &errString,const string &editString);
 
-	bool setEditString(string s);
 	string getDisplayString() const;
 	string getEditString() const;
 
 	void update(const CellArray &cells);
 
 	vector<CellAddress> getDependencies() const;
-
-	//Own interface:
-	void setErrorString(string s);
 };

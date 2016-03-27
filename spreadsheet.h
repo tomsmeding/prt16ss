@@ -13,23 +13,22 @@ class Cell;
 class CellArrayIt;
 
 class CellArray{
-	vector<vector<Cell*>> cells;
+	vector<vector<Cell>> cells;
 
 public:
 	using iterator = CellArrayIt;
 
-	~CellArray();
-
 	unsigned int width() const;
 	unsigned int height() const;
 
-	Cell*& operator[](CellAddress addr);
-	Cell*& at(CellAddress addr);
+	Cell& operator[](CellAddress addr);
+	const Cell& operator[](CellAddress addr) const;
+	Cell& at(CellAddress addr);
 
 	void ensureSize(unsigned int w,unsigned int h);
 
-	CellArray::iterator begin();
-	CellArray::iterator end();
+	/*CellArray::iterator begin();
+	CellArray::iterator end();*/
 	CellArray::iterator range(CellAddress a,CellAddress b);
 };
 
@@ -46,8 +45,8 @@ public:
 
 	bool operator==(const CellArrayIt &other) const;
 	bool operator!=(const CellArrayIt &other) const;
-	Cell* operator*() const;
-	Cell** operator->() const;
+	Cell operator*() const;
+	Cell* operator->() const;
 	CellArrayIt& operator++();
 };
 

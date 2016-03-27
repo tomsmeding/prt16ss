@@ -3,14 +3,6 @@
 #include <vector>
 #include <stdexcept>
 
-CellArray::~CellArray(){
-	for(const vector<Cell*> &row : cells){
-		for(Cell *cell : row){
-			delete cell;
-		}
-	}
-}
-
 unsigned int CellArray::width() const {
 	return cells.size()==0?0:cells[0].size();
 }
@@ -19,11 +11,15 @@ unsigned int CellArray::height() const {
 	return cells.size();
 }
 
-Cell*& CellArray::operator[](CellAddress addr){
+Cell& CellArray::operator[](CellAddress addr){
 	return cells[addr.row][addr.column];
 }
 
-Cell*& CellArray::at(CellAddress addr){
+const Cell& CellArray::operator[](CellAddress addr) const {
+	return cells[addr.row][addr.column];
+}
+
+Cell& CellArray::at(CellAddress addr){
 	return cells.at(addr.row).at(addr.column);
 }
 
@@ -31,27 +27,30 @@ void CellArray::ensureSize(unsigned int w,unsigned int h){
 	if(w==-1U||h==-1U){ //protection against error values
 		throw out_of_range("-1 dimension in CellArray::ensureSize");
 	}
-	for(size_t y=0;y<height();y++){
-		while(cells[y].size()<w){
-			cells[y].push_back(new CellBasic<string>(CellAddress(y,cells[y].size())));
+	if(width()<w){
+		for(size_t y=0;y<height();y++){
+			cells[y].reserve(w);
+			for(size_t x=cells[y].size();x<w;x++){
+				cells[y].emplace_back(CellAddress(y,cells[y].size()));
+			}
 		}
 	}
 	while(height()<h){
 		cells.emplace_back();
 		cells.back().reserve(w);
 		for(size_t x=0;x<w;x++){
-			cells.back().push_back(new CellBasic<string>(CellAddress(cells.size()-1,x)));
+			cells.back().emplace_back(CellAddress(cells.size()-1,x));
 		}
 	}
 }
 
-CellArray::iterator CellArray::begin(){
+/*CellArray::iterator CellArray::begin(){
 	return CellArrayIt(*this,CellAddress(0,0),CellAddress(height()-1,width()-1));
 }
 
 CellArray::iterator CellArray::end(){
 	return CellArrayIt::endit();
-}
+}*/
 
 CellArray::iterator CellArray::range(CellAddress a,CellAddress b){
 	return CellArrayIt(*this,a,b);
@@ -81,14 +80,14 @@ bool CellArrayIt::operator!=(const CellArrayIt &other) const {
 	return !operator==(other);
 }
 
-Cell* CellArrayIt::operator*() const {
-	if(isend)return nullptr;
-	else return (*cells)[cursor];
+Cell CellArrayIt::operator*() const {
+	if(isend)throw logic_error("Dereference on end iterator (CellArrayIt)");
+	return (*cells)[cursor];
 }
 
-Cell** CellArrayIt::operator->() const {
-	if(isend)return nullptr;
-	else return &(*cells)[cursor];
+Cell* CellArrayIt::operator->() const {
+	if(isend)throw logic_error("Dereference on end iterator (CellArrayIt)");
+	return &(*cells)[cursor];
 }
 
 CellArrayIt& CellArrayIt::operator++(){
@@ -123,12 +122,12 @@ bool Spreadsheet::inBounds(CellAddress addr) const {
 
 Maybe<string> Spreadsheet::getCellDisplayString(CellAddress addr) {
 	if(!inBounds(addr))return Nothing();
-	return cells[addr]->getDisplayString();
+	return cells[addr].getDisplayString();
 }
 
 Maybe<string> Spreadsheet::getCellEditString(CellAddress addr) {
 	if(!inBounds(addr))return Nothing();
-	return cells[addr]->getEditString();
+	return cells[addr].getEditString();
 }
 
 //returns all cells updated, including given cell (also updated);
@@ -137,11 +136,11 @@ Maybe<string> Spreadsheet::getCellEditString(CellAddress addr) {
 //Assumes addr in bounds!
 set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularrefs){
 	if(circularrefs)*circularrefs=false;
-	Cell *cell=cells[addr];
-	cell->update(cells);
+	Cell &cell=cells[addr];
+	cell.update(cells);
 	set<CellAddress> seen;
 	seen.insert(addr);
-	set<CellAddress> revdeps=cell->getReverseDependencies();
+	set<CellAddress> revdeps=cell.getReverseDependencies();
 	while(revdeps.size()){
 		set<CellAddress> newrevdeps;
 		for(CellAddress revdepaddr : revdeps){
@@ -149,9 +148,9 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularref
 				*circularrefs=true;
 				return seen;
 			}
-			Cell *revdepcell=cells[revdepaddr];
-			revdepcell->update(cells);
-			const set<CellAddress> d=revdepcell->getReverseDependencies();
+			Cell &revdepcell=cells[revdepaddr];
+			revdepcell.update(cells);
+			const set<CellAddress> d=revdepcell.getReverseDependencies();
 			newrevdeps.insert(d.begin(),d.end());
 		}
 		revdeps=move(newrevdeps);
@@ -161,30 +160,30 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularref
 
 Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr){
 	if(!inBounds(addr))return Nothing();
-	Cell *oldcell=cells[addr];
-	for(const CellAddress &depaddr : oldcell->getDependencies()){
-		cells[depaddr]->removeReverseDependency(addr);
+	/*Cell &oldcell=cells[addr];
+	for(const CellAddress &depaddr : oldcell.getDependencies()){
+		cells[depaddr].removeReverseDependency(addr);
 	}
-	Cell *newcell=Cell::cellFromString(repr,addr);
-	newcell->addReverseDependencies(oldcell->getReverseDependencies());
-	for(const CellAddress &depaddr : newcell->getDependencies()){
-		cells[depaddr]->addReverseDependency(addr);
+	Cell newcell=Cell::cellFromString(repr,addr);
+	newcell.addReverseDependencies(oldcell.getReverseDependencies());
+	for(const CellAddress &depaddr : newcell.getDependencies()){
+		cells[depaddr].addReverseDependency(addr);
 	}
-	delete oldcell;
-	cells[addr]=newcell;
+	cells[addr]=newcell;*/
+	cells[addr].setEditString(repr);
 	bool circularrefs;
 	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs);
 	if(!circularrefs){
 		return changed;
 	}
-	for(const CellAddress &depaddr : newcell->getDependencies()){
-		cells[depaddr]->removeReverseDependency(addr);
+	for(const CellAddress &depaddr : cells[addr].getDependencies()){
+		cells[depaddr].removeReverseDependency(addr);
 	}
-	CellError *errorcell=new CellError(addr,newcell->getEditString());
-	errorcell->setErrorString("Circular reference chain");
-	errorcell->addReverseDependencies(newcell->getReverseDependencies());
-	delete newcell;
-	cells[addr]=errorcell;
+	cells[addr].setError("Circular reference chain");
+	/*CellError errorcell=new CellError(addr,newcell.getEditString());
+	errorcell.setErrorString("Circular reference chain");
+	errorcell.addReverseDependencies(newcell.getReverseDependencies());
+	cells[addr]=errorcell;*/
 	return recursiveUpdate(addr,nullptr);
 }
 

@@ -10,36 +10,36 @@
 using namespace std;
 
 
+Cell::Cell(CellValue *value,CellAddress addr)
+	:value(value),addr(addr){}
+
 Cell::Cell(CellAddress addr)
-	:addr(addr){}
+	:value(new CellValueBasic<string>("")),addr(addr){}
+
+Cell::Cell(string editString,CellAddress addr)
+	:value(nullptr),addr(addr){
+	setEditString(editString);
+}
 
 Cell::~Cell(){}
 
-Cell* Cell::cellFromString(string s,CellAddress addr){
-	Maybe<int> intval=convertstring<int>(s);
-	if(intval.isJust()){
-		CellBasic<int> *cell=new CellBasic<int>(addr);
-		cell->setFromValue(intval.fromJust());
-		return cell;
+Cell Cell::makeErrorCell(string errString,string editString,CellAddress addr){
+	return Cell(new CellValueError(errString,editString),addr);
+}
+
+void Cell::setError(string errString){
+	CellValue *newvalue;
+	if(value){
+		newvalue=new CellValueError(errString,value->getEditString());
+		delete value;
+	} else {
+		newvalue=new CellValueError(errString,"");
 	}
-	Maybe<double> doubleval=convertstring<double>(s);
-	if(doubleval.isJust()){
-		CellBasic<double> *cell=new CellBasic<double>(addr);
-		cell->setFromValue(doubleval.fromJust());
-		return cell;
-	}
-	if(s.size()&&s[0]=='='){
-		CellFormula *cell=new CellFormula(addr);
-		if(!cell->setEditString(s)){
-			delete cell;
-			CellError *cell=new CellError(addr,s);
-			cell->setErrorString("Invalid formula");
-		}
-		return cell;
-	}
-	CellBasic<string> *cell=new CellBasic<string>(addr);
-	cell->setFromValue(s);
-	return cell;
+	value=newvalue;
+}
+
+const set<CellAddress>& Cell::getReverseDependencies() const {
+	return revdeps;
 }
 
 bool Cell::addReverseDependency(CellAddress addr){
@@ -59,82 +59,111 @@ bool Cell::removeReverseDependency(CellAddress addr){
 	return true;
 }
 
-const set<CellAddress>& Cell::getReverseDependencies() const {
-	return revdeps;
+void Cell::setEditString(string s){
+	if(value)delete value;
+	value=CellValue::cellValueFromString(s);
+}
+
+string Cell::getDisplayString() const {
+	return value->getDisplayString();
+}
+
+string Cell::getEditString() const {
+	return value->getEditString();
+}
+
+void Cell::update(const CellArray &cells){
+	value->update(cells);
+}
+
+vector<CellAddress> Cell::getDependencies() const {
+	return value->getDependencies();
+}
+
+
+
+CellValue::~CellValue(){}
+
+
+CellValue* CellValue::cellValueFromString(string s){
+	Maybe<int> intval=convertstring<int>(s);
+	if(intval.isJust()){
+		return new CellValueBasic<int>(intval.fromJust());
+	}
+	Maybe<double> doubleval=convertstring<double>(s);
+	if(doubleval.isJust()){
+		return new CellValueBasic<double>(doubleval.fromJust());
+	}
+	if(s.size()&&s[0]=='='){
+		Maybe<CellValueFormula*> mcv=CellValueFormula::parseAndCreateFormula(s);;
+		if(mcv.isNothing()){
+			return new CellValueError("Invalid formula",s);
+		}
+		return mcv.fromJust();
+	}
+	return new CellValueBasic<string>(s);
 }
 
 
 
 template <typename T>
-bool CellBasic<T>::setEditString(string s){
-	s=trim(s);
-	Maybe<T> mnewval=convertstring<T>(s);
-	if(mnewval.isNothing())return false;
-	value=mnewval.fromJust();
-	return true;
-}
+CellValueBasic<T>::CellValueBasic(T value)
+	:value(value){}
 
 template <typename T>
-string CellBasic<T>::getDisplayString() const {
+string CellValueBasic<T>::getDisplayString() const {
 	return to_string(value);
 }
 
 template <>
-string CellBasic<string>::getDisplayString() const {
+string CellValueBasic<string>::getDisplayString() const {
 	return value;
 }
 
 template <typename T>
-string CellBasic<T>::getEditString() const {
+string CellValueBasic<T>::getEditString() const {
 	return getDisplayString();
 }
 
 template <typename T>
-void CellBasic<T>::update(const CellArray &){}
+void CellValueBasic<T>::update(const CellArray &){}
 
 template <typename T>
-vector<CellAddress> CellBasic<T>::getDependencies() const {
+vector<CellAddress> CellValueBasic<T>::getDependencies() const {
 	return vector<CellAddress>();
 }
 
-template <typename T>
-void CellBasic<T>::setFromValue(T newval){
-	value=newval;
-}
 
 
-
-CellFormula::CellFormula(CellAddress addr)
-	:Cell(addr),isstring(true){}
-
-bool CellFormula::setEditString(string s){ //STUB
+Maybe<CellValueFormula*> CellValueFormula::parseAndCreateFormula(string s){ //STUB
+	CellValueFormula *cv=new CellValueFormula;
 	size_t cursor=0,idx,sz=s.size();
-	parsed.clear();
 	while(cursor<sz){
 		idx=s.find(' ',cursor);
 		if(idx==string::npos)idx=sz;
 		Maybe<CellAddress> mca=CellAddress::fromRepresentation(s.substr(cursor,idx-cursor));
 		if(mca.isNothing()){
-			parsed.clear();
-			return false;
+			return Nothing();
 		}
+		cv->parsed.push_back(mca.fromJust());
 		for(cursor=idx;cursor<sz;cursor++){
 			if(s[cursor]!=' ')break;
 		}
 	}
-	return true;
+	cv->editString=s;
+	return cv;
 }
 
-string CellFormula::getDisplayString() const {
+string CellValueFormula::getDisplayString() const {
 	if(isstring)return stringval;
 	else return to_string(doubleval);
 }
 
-string CellFormula::getEditString() const {
+string CellValueFormula::getEditString() const {
 	return editString;
 }
 
-void CellFormula::update(const CellArray &cells){ //STUB
+void CellValueFormula::update(const CellArray &cells){ //STUB
 	isstring=true;
 	stringval.clear();
 	size_t sz=parsed.size();
@@ -143,37 +172,31 @@ void CellFormula::update(const CellArray &cells){ //STUB
 		if(parsed[i].row>=cells.height()||parsed[i].column>=cells.width()){
 			//FIX THIS
 			stringval+="???";
+		} else {
+			stringval+=cells[parsed[i]].getDisplayString();
 		}
 	}
 }
 
-vector<CellAddress> CellFormula::getDependencies() const { //STUB
+vector<CellAddress> CellValueFormula::getDependencies() const { //STUB
 	return parsed;
 }
 
 
 
-CellError::CellError(CellAddress addr,const string &editString)
-	:Cell(addr),editString(editString){}
+CellValueError::CellValueError(const string &errString,const string &editString)
+	:errString(errString),editString(editString){}
 
-bool CellError::setEditString(string){
-	return false;
+string CellValueError::getDisplayString() const {
+	return "ERR:"+errString;
 }
 
-string CellError::getDisplayString() const {
-	return "ERR";
-}
-
-string CellError::getEditString() const {
+string CellValueError::getEditString() const {
 	return editString;
 }
 
-void CellError::update(const CellArray &){}
+void CellValueError::update(const CellArray &){}
 
-vector<CellAddress> CellError::getDependencies() const {
+vector<CellAddress> CellValueError::getDependencies() const {
 	return vector<CellAddress>();
-}
-
-void CellError::setErrorString(string s){
-	errString=s;
 }
