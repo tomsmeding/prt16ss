@@ -150,7 +150,7 @@ testcases.append(("Formulas",[
 	["disp A2","\"10 20 30\""],
 	["edit A2","\"=A1 B1 C1\""],
 ]))
-testcases.append(("Formula recursive updating",[
+testcases.append(("Formula updating",[
 	["ensure 3 3"],
 	["change A1 10","Changed: A1"],
 	["change B1 20","Changed: B1"],
@@ -163,7 +163,7 @@ testcases.append(("Formula recursive updating",[
 	["disp A2","\"10 42 30\""],
 	["edit A2","\"=A1 B1 C1\""],
 ]))
-testcases.append(("Formula recursive updating restore",[
+testcases.append(("Formula updating restore",[
 	["ensure 3 3"],
 	["change A1 10","Changed: A1"],
 	["change B1 20","Changed: B1"],
@@ -173,7 +173,7 @@ testcases.append(("Formula recursive updating restore",[
 	["change A2 hoi","Changed: A2"],
 	["change C1 41","Changed: C1"],
 ]))
-testcases.append(("Formula recursive updating deeper",[
+testcases.append(("Formula updating deeper",[
 	["ensure 3 3"],
 	["change A1 1","Changed: A1"],
 	["change A2 2","Changed: A2"],
@@ -196,6 +196,33 @@ testcases.append(("Formula recursive updating deeper",[
 	["change A3 x","Changed: A3"],
 	["change B3 x",changedcheck(["B3","C2","C3"])],
 	["disp C3","\" 42 5 x\""]
+]))
+testcases.append(("Formula circular dependency detection",[
+	["ensure 3 3"],
+	["change A1 a","Changed: A1"],
+	["change A2 =A1","Changed: A2"],
+	["change A3 =A2","Changed: A3"],
+	["disp A1","\"a\""],
+	["disp A2","\"a\""],
+	["disp A3","\"a\""],
+
+	["change A1 rip",changedcheck(["A1","A2","A3"])],
+	["disp A1","\"rip\""],
+	["disp A2","\"rip\""],
+	["disp A3","\"rip\""],
+
+	["change A1 =A3",changedcheck(["A1","A2","A3"])],
+	["disp A1","\"ERR:Circular reference chain\""],
+	["disp A2","\"ERR:Circular reference chain\""],
+	["disp A3","\"ERR:Circular reference chain\""],
+
+	["change A2 42",changedcheck(["A1","A2","A3"])],
+	["disp A1","\"42\""],
+	["disp A2","\"42\""],
+	["disp A3","\"42\""],
+	["edit A1","\"=A3\""],
+	["edit A2","\"42\""],
+	["edit A3","\"=A2\""],
 ]))
 
 
