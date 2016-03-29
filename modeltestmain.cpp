@@ -29,7 +29,7 @@ vector<string> split(string s){
 }
 
 
-Spreadsheet sheet;
+Spreadsheet sheet(1,1);
 
 
 unordered_map<string,pair<string,function<void(vector<string>,string)>>> commands={
