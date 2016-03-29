@@ -42,21 +42,23 @@ unordered_map<string,pair<string,function<void(vector<string>,string)>>> command
 		exit(0);
 	}}},
 	{"disp",{"[addr] get display string of cell",[](vector<string> cmd,string) -> void {
-		if(cmd.size()!=2){
-			cout<<"Pass addr repr ('A1') as argument"<<endl;
-			return;
-		}
+		if(cmd.size()!=2){cout<<"Pass addr repr ('A1') as argument"<<endl;return;}
 		Maybe<CellAddress> addr=CellAddress::fromRepresentation(cmd[1]);
-		if(addr.isNothing()){
-			cout<<"Invalid cell address"<<endl;
-			return;
-		}
-		// cout<<"addr: row="<<addr.fromJust().row<<" column="<<addr.fromJust().column<<endl;
+		if(addr.isNothing()){cout<<"Invalid cell address"<<endl;return;}
+
 		Maybe<string> ret=sheet.getCellDisplayString(addr.fromJust());
-		if(ret.isNothing()){
-			cout<<"Out of bounds address"<<endl;
-			return;
-		}
+
+		if(ret.isNothing()){cout<<"Out of bounds address"<<endl;return;}
+		cout<<'"'<<ret.fromJust()<<'"'<<endl;
+	}}},
+	{"edit",{"[addr] get edit string of cell",[](vector<string> cmd,string) -> void {
+		if(cmd.size()!=2){cout<<"Pass addr repr ('A1') as argument"<<endl;return;}
+		Maybe<CellAddress> addr=CellAddress::fromRepresentation(cmd[1]);
+		if(addr.isNothing()){cout<<"Invalid cell address"<<endl;return;}
+
+		Maybe<string> ret=sheet.getCellEditString(addr.fromJust());
+
+		if(ret.isNothing()){cout<<"Out of bounds address"<<endl;return;}
 		cout<<'"'<<ret.fromJust()<<'"'<<endl;
 	}}},
 	{"ensure",{"[width] [height] ensure sheet size",[](vector<string> cmd,string) -> void {
@@ -76,15 +78,15 @@ unordered_map<string,pair<string,function<void(vector<string>,string)>>> command
 			cout<<"Invalid cell address"<<endl;
 			return;
 		}
-		string value=cmd.size()==2?"":line.substr(line.find(' ',line.find(' '))+1);
+		string value=cmd.size()==2?"":line.substr(line.find(' ',line.find(' ')+1)+1);
 		Maybe<set<CellAddress>> changed=sheet.changeCellValue(addr.fromJust(),value);
 		if(changed.isNothing()){
 			cout<<"Out of bounds address"<<endl;
 			return;
 		}
-		cout<<"Changed: ";
+		cout<<"Changed:";
 		for(const CellAddress &addr : changed.fromJust()){
-			cout<<addr.toRepresentation()<<' ';
+			cout<<' '<<addr.toRepresentation();
 		}
 		cout<<endl;
 	}}},
@@ -102,6 +104,30 @@ unordered_map<string,pair<string,function<void(vector<string>,string)>>> command
 			cout<<"row="<<addr.fromJust().row<<" column="<<addr.fromJust().column<<endl;
 		} else {
 			cout<<CellAddress(stoul(cmd[1]),stoul(cmd[2])).toRepresentation()<<endl;
+		}
+	}}},
+	{"print",{"[width] [height]",[](vector<string> cmd,string) -> void {
+		if(cmd.size()!=3){
+			cout<<"Pass width and height to print"<<endl;
+			return;
+		}
+		int width,height;
+		try {
+			width=stoi(cmd[1]),height=stoi(cmd[2]);
+		} catch(invalid_argument){
+			cout<<"Please pass ints"<<endl;
+			return;
+		}
+		int x,y;
+		sheet.ensureSheetSize(width,height);
+		for(y=0;y<height;y++){
+			for(x=0;x<width;x++){
+				if(x!=0)cout<<' ';
+				string disp=sheet.getCellDisplayString(CellAddress(y,x)).fromJust();
+				cout<<disp.substr(0,8);
+				if(disp.size()<8)cout<<string(8-disp.size(),' ');
+			}
+			cout<<endl;
 		}
 	}}}
 };
