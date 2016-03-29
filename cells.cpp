@@ -95,7 +95,7 @@ CellValue* CellValue::cellValueFromString(string s){
 		return new CellValueBasic<double>(doubleval.fromJust());
 	}
 	if(s.size()&&s[0]=='='){
-		Maybe<CellValueFormula*> mcv=CellValueFormula::parseAndCreateFormula(s);;
+		Maybe<CellValueFormula*> mcv=CellValueFormula::parseAndCreateFormula(s);
 		if(mcv.isNothing()){
 			return new CellValueError("Invalid formula",s);
 		}
@@ -137,7 +137,7 @@ vector<CellAddress> CellValueBasic<T>::getDependencies() const {
 
 Maybe<CellValueFormula*> CellValueFormula::parseAndCreateFormula(string s){ //STUB
 	CellValueFormula *cv=new CellValueFormula;
-	size_t cursor=0,idx,sz=s.size();
+	size_t cursor=1,idx,sz=s.size();
 	while(cursor<sz){
 		idx=s.find(' ',cursor);
 		if(idx==string::npos)idx=sz;
