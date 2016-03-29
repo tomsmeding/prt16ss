@@ -32,16 +32,16 @@ vector<string> split(string s){
 Spreadsheet sheet;
 
 
-unordered_map<string,pair<string,function<void(vector<string>)>>> commands={
-	{"help",{"show this help",[](vector<string>) -> void {
+unordered_map<string,pair<string,function<void(vector<string>,string)>>> commands={
+	{"help",{"show this help",[](vector<string>,string) -> void {
 		for(const auto &p : commands){
 			cout<<p.first<<": "<<p.second.first<<endl;
 		}
 	}}},
-	{"exit",{"exit",[](vector<string>) -> void {
+	{"exit",{"exit",[](vector<string>,string) -> void {
 		exit(0);
 	}}},
-	{"disp",{"[addr] get display string of cell",[](vector<string> cmd) -> void {
+	{"disp",{"[addr] get display string of cell",[](vector<string> cmd,string) -> void {
 		if(cmd.size()!=2){
 			cout<<"Pass addr repr ('A1') as argument"<<endl;
 			return;
@@ -59,15 +59,15 @@ unordered_map<string,pair<string,function<void(vector<string>)>>> commands={
 		}
 		cout<<'"'<<ret.fromJust()<<'"'<<endl;
 	}}},
-	{"ensure",{"[width] [height] ensure sheet size",[](vector<string> cmd) -> void {
+	{"ensure",{"[width] [height] ensure sheet size",[](vector<string> cmd,string) -> void {
 		if(cmd.size()!=3){
 			cout<<"Pass width and height"<<endl;
 			return;
 		}
 		sheet.ensureSheetSize(stoi(cmd[1]),stoi(cmd[2]));
 	}}},
-	{"change",{"[addr] [value]? change value at addr",[](vector<string> cmd) -> void {
-		if(cmd.size()!=3&&cmd.size()!=2){
+	{"change",{"[addr] [value]? change value at addr",[](vector<string> cmd,string line) -> void {
+		if(cmd.size()<2){
 			cout<<"Pass addr repr and value (empty value also valid)"<<endl;
 			return;
 		}
@@ -76,7 +76,8 @@ unordered_map<string,pair<string,function<void(vector<string>)>>> commands={
 			cout<<"Invalid cell address"<<endl;
 			return;
 		}
-		Maybe<set<CellAddress>> changed=sheet.changeCellValue(addr.fromJust(),cmd.size()==3?cmd[2]:"");
+		string value=cmd.size()==2?"":line.substr(line.find(' ',line.find(' '))+1);
+		Maybe<set<CellAddress>> changed=sheet.changeCellValue(addr.fromJust(),value);
 		if(changed.isNothing()){
 			cout<<"Out of bounds address"<<endl;
 			return;
@@ -87,7 +88,7 @@ unordered_map<string,pair<string,function<void(vector<string>)>>> commands={
 		}
 		cout<<endl;
 	}}},
-	{"ca",{"[addr] / [row] [column]",[](vector<string> cmd) -> void {
+	{"ca",{"[addr] / [row] [column]",[](vector<string> cmd,string) -> void {
 		if(cmd.size()!=2&&cmd.size()!=3){
 			cout<<"Pass addr or row and column"<<endl;
 			return;
@@ -118,6 +119,6 @@ int main(){
 			cout<<"Command not found: '"<<cmd<<'\''<<endl;
 			continue;
 		}
-		it->second.second(split(line));
+		it->second.second(split(line),line);
 	}
 }
