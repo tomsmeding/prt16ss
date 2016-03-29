@@ -106,7 +106,7 @@ unordered_map<string,pair<string,function<void(vector<string>,string)>>> command
 			cout<<CellAddress(stoul(cmd[1]),stoul(cmd[2])).toRepresentation()<<endl;
 		}
 	}}},
-	{"print",{"[width] [height]",[](vector<string> cmd,string) -> void {
+	{"print",{"[width] [height] print part of sheet",[](vector<string> cmd,string) -> void {
 		if(cmd.size()!=3){
 			cout<<"Pass width and height to print"<<endl;
 			return;
@@ -128,6 +128,28 @@ unordered_map<string,pair<string,function<void(vector<string>,string)>>> command
 				if(disp.size()<8)cout<<string(8-disp.size(),' ');
 			}
 			cout<<endl;
+		}
+	}}},
+	{"save",{"[fname] save sheet to specified file",[](vector<string> cmd,string line) -> void {
+		if(cmd.size()<2){
+			cout<<"Pass file name"<<endl;
+			return;
+		}
+		if(sheet.saveToDisk(line.substr(line.find(' ')+1))){
+			cout<<"Success"<<endl;
+		} else {
+			cout<<"Failure"<<endl;
+		}
+	}}},
+	{"load",{"[fname] load sheet from specified file",[](vector<string> cmd,string line) -> void {
+		if(cmd.size()<2){
+			cout<<"Pass file name"<<endl;
+			return;
+		}
+		if(sheet.loadFromDisk(line.substr(line.find(' ')+1))){
+			cout<<"Success"<<endl;
+		} else {
+			cout<<"Failure"<<endl;
 		}
 	}}}
 };
