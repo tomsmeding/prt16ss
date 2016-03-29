@@ -59,7 +59,8 @@ public:
 	virtual string getEditString() const = 0;
 
 	//updates the cell, using possibly changed values of its dependencies
-	virtual void update(const CellArray &cells) = 0;
+	//returns true if the cell must be regenerated with cellValueFromString
+	virtual bool update(const CellArray &cells) = 0;
 
 	virtual vector<CellAddress> getDependencies() const = 0; //returns list of dependencies for this cell
 };
@@ -74,7 +75,7 @@ public:
 	string getDisplayString() const;
 	string getEditString() const;
 
-	void update(const CellArray &cells);
+	bool update(const CellArray &cells);
 
 	vector<CellAddress> getDependencies() const;
 };
@@ -96,7 +97,7 @@ public:
 	string getDisplayString() const;
 	string getEditString() const;
 
-	void update(const CellArray &cells);
+	bool update(const CellArray &cells);
 
 	vector<CellAddress> getDependencies() const;
 };
@@ -111,7 +112,7 @@ public:
 	string getDisplayString() const;
 	string getEditString() const;
 
-	void update(const CellArray &cells);
+	bool update(const CellArray &cells);
 
 	vector<CellAddress> getDependencies() const;
 };

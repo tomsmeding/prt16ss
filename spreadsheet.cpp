@@ -44,14 +44,6 @@ void CellArray::ensureSize(unsigned int w,unsigned int h){
 	}
 }
 
-/*CellArray::iterator CellArray::begin(){
-	return CellArrayIt(*this,CellAddress(0,0),CellAddress(height()-1,width()-1));
-}
-
-CellArray::iterator CellArray::end(){
-	return CellArrayIt::endit();
-}*/
-
 CellArray::iterator CellArray::range(CellAddress a,CellAddress b){
 	return CellArrayIt(*this,a,b);
 }
@@ -130,22 +122,18 @@ Maybe<string> Spreadsheet::getCellEditString(CellAddress addr) {
 	return cells[addr].getEditString();
 }
 
-//returns all cells updated, including given cell (also updated);
-//if circular references and circularrefs!=nullptr, sets that to true, else to false
-//if circularrefs==nullptr, ignores a circular reference and continues updating the rest
-//Assumes addr in bounds!
-set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularrefs){
+set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularrefs,bool updatefirst){
 	if(circularrefs)*circularrefs=false;
 	Cell &cell=cells[addr];
-	cell.update(cells);
+	if(updatefirst)cell.update(cells);
 	set<CellAddress> seen;
 	seen.insert(addr);
 	set<CellAddress> revdeps=cell.getReverseDependencies();
 	while(revdeps.size()){
 		set<CellAddress> newrevdeps;
 		for(CellAddress revdepaddr : revdeps){
-			if(!seen.insert(revdepaddr).second&&circularrefs){
-				*circularrefs=true;
+			if(!seen.insert(revdepaddr).second){
+				if(circularrefs)*circularrefs=true;
 				return seen;
 			}
 			Cell &revdepcell=cells[revdepaddr];
@@ -165,19 +153,16 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 		cells[depaddr].removeReverseDependency(addr);
 	}
 	cell.setEditString(repr);
+	for(const CellAddress &depaddr : cell.getDependencies()){
+		cells[depaddr].addReverseDependency(addr);
+	}
 	bool circularrefs;
-	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs);
+	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs,true);
 	if(!circularrefs){
-		for(const CellAddress &depaddr : cell.getDependencies()){
-			cells[depaddr].addReverseDependency(addr);
-		}
 		return changed;
 	}
-	for(const CellAddress &depaddr : cell.getDependencies()){
-		cells[depaddr].removeReverseDependency(addr);
-	}
 	cell.setError("Circular reference chain");
-	return recursiveUpdate(addr,nullptr);
+	return recursiveUpdate(addr,nullptr,false);
 }
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){

@@ -73,7 +73,12 @@ string Cell::getEditString() const {
 }
 
 void Cell::update(const CellArray &cells){
-	value->update(cells);
+	if(value->update(cells)){
+		CellValue *newvalue=CellValue::cellValueFromString(value->getEditString());
+		delete value;
+		value=newvalue;
+		value->update(cells);
+	}
 }
 
 vector<CellAddress> Cell::getDependencies() const {
@@ -126,7 +131,9 @@ string CellValueBasic<T>::getEditString() const {
 }
 
 template <typename T>
-void CellValueBasic<T>::update(const CellArray &){}
+bool CellValueBasic<T>::update(const CellArray &){
+	return false;
+}
 
 template <typename T>
 vector<CellAddress> CellValueBasic<T>::getDependencies() const {
@@ -163,7 +170,7 @@ string CellValueFormula::getEditString() const {
 	return editString;
 }
 
-void CellValueFormula::update(const CellArray &cells){ //STUB
+bool CellValueFormula::update(const CellArray &cells){ //STUB
 	isstring=true;
 	stringval.clear();
 	size_t sz=parsed.size();
@@ -176,6 +183,7 @@ void CellValueFormula::update(const CellArray &cells){ //STUB
 			stringval+=cells[parsed[i]].getDisplayString();
 		}
 	}
+	return false;
 }
 
 vector<CellAddress> CellValueFormula::getDependencies() const { //STUB
@@ -195,7 +203,9 @@ string CellValueError::getEditString() const {
 	return editString;
 }
 
-void CellValueError::update(const CellArray &){}
+bool CellValueError::update(const CellArray &){
+	return true;
+}
 
 vector<CellAddress> CellValueError::getDependencies() const {
 	return vector<CellAddress>();

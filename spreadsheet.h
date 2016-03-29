@@ -57,11 +57,11 @@ class Spreadsheet{
 	unsigned int getHeight() const;
 	bool inBounds(CellAddress addr) const;
 
-	//returns all cells updated, including given cell (also updated);
+	//returns all cells updated, including given cell (only updated if updatefirst);
 	//if circular references and circularrefs!=nullptr, sets that to true, else to false
 	//if circularrefs==nullptr, ignores a circular reference and continues updating the rest
 	//Assumes addr in bounds!
-	set<CellAddress> recursiveUpdate(CellAddress addr,bool *circularrefs=nullptr);
+	set<CellAddress> recursiveUpdate(CellAddress addr,bool *circularrefs,bool updatefirst);
 
 public:
 	Spreadsheet(unsigned int width,unsigned int height);
