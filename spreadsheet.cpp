@@ -160,30 +160,23 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularref
 
 Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr){
 	if(!inBounds(addr))return Nothing();
-	/*Cell &oldcell=cells[addr];
-	for(const CellAddress &depaddr : oldcell.getDependencies()){
+	Cell &cell=cells[addr];
+	for(const CellAddress &depaddr : cell.getDependencies()){
 		cells[depaddr].removeReverseDependency(addr);
 	}
-	Cell newcell=Cell::cellFromString(repr,addr);
-	newcell.addReverseDependencies(oldcell.getReverseDependencies());
-	for(const CellAddress &depaddr : newcell.getDependencies()){
-		cells[depaddr].addReverseDependency(addr);
-	}
-	cells[addr]=newcell;*/
-	cells[addr].setEditString(repr);
+	cell.setEditString(repr);
 	bool circularrefs;
 	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs);
 	if(!circularrefs){
+		for(const CellAddress &depaddr : cell.getDependencies()){
+			cells[depaddr].addReverseDependency(addr);
+		}
 		return changed;
 	}
-	for(const CellAddress &depaddr : cells[addr].getDependencies()){
+	for(const CellAddress &depaddr : cell.getDependencies()){
 		cells[depaddr].removeReverseDependency(addr);
 	}
-	cells[addr].setError("Circular reference chain");
-	/*CellError errorcell=new CellError(addr,newcell.getEditString());
-	errorcell.setErrorString("Circular reference chain");
-	errorcell.addReverseDependencies(newcell.getReverseDependencies());
-	cells[addr]=errorcell;*/
+	cell.setError("Circular reference chain");
 	return recursiveUpdate(addr,nullptr);
 }
 
