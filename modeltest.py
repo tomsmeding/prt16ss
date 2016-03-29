@@ -65,6 +65,7 @@ class Interactor:
 		if len(s)==0:
 			return
 		bufidx=1 if stderr else 0
+		doraise=False
 		while len(self.readbuffer[bufidx])<len(s):
 			buf=(self.proc.stderr if stderr else self.proc.stdout).read(1024)
 			if buf==None:
@@ -73,7 +74,10 @@ class Interactor:
 				raise EOFError("EOF on read from "+("stderr" if stderr else "stdout")+" of process")
 			buf=buf.decode("utf-8")
 			self.readbuffer[bufidx]+=buf
-		if self.readbuffer[bufidx][:len(s)]!=s:
+			if len(self.readbuffer[bufidx])<len(s) and self.readbuffer[bufidx]!=s[:len(self.readbuffer[bufidx])]:
+				doraise=True
+				break
+		if doraise or self.readbuffer[bufidx][:len(s)]!=s:
 			raise AssertionError("Expected string "+repr(s)+" not found on "+("stderr" if stderr else "stdout")+" of process, rather "+repr(self.readbuffer[bufidx]))
 		self.readbuffer[bufidx]=self.readbuffer[bufidx][len(s):]
 
@@ -113,9 +117,9 @@ testcases.append(("CellAddress conversion",[
 	["ca CW2","row=1 column=100"],
 ]))
 testcases.append(("Ensure size",[
-	["disp A1","Out of bounds address"],
-	["ensure 1 1"],
-	["disp A1","\"\""],
+	["disp D2","Out of bounds address"],
+	["ensure 4 4"],
+	["disp D2","\"\""],
 ]))
 testcases.append(("Changing",[
 	["ensure 3 3"],
