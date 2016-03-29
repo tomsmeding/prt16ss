@@ -3,6 +3,7 @@
 #include "celladdress.h"
 #include "conversion.h"
 #include "maybe.h"
+#include "util.h"
 #include <vector>
 #include <string>
 #include <utility>
@@ -83,6 +84,37 @@ void Cell::update(const CellArray &cells){
 
 vector<CellAddress> Cell::getDependencies() const {
 	return value->getDependencies();
+}
+
+/*
+Serialisation format:
+First the number of reverse dependencies, then a list of them;
+followed by the edit string.
+*/
+void Cell::serialise(ostream &os) const {
+	writeUInt32LE(os,revdeps.size());
+	for(const CellAddress &revdepaddr : revdeps){
+		revdepaddr.serialise(os);
+	}
+	const string &s=value->getEditString();
+	writeUInt32LE(os,s.size());
+	os<<s;
+}
+
+void Cell::deserialise(istream &in){
+	unsigned int nrevdeps=readUInt32LE(in);
+	if(in.fail())return; //won't allocate memory for an insane amount of items
+	revdeps.clear();
+	unsigned int i;
+	for(i=0;i<nrevdeps;i++){
+		revdeps.insert(CellAddress::deserialise(in));
+	}
+	unsigned int len=readUInt32LE(in);
+	if(in.fail())return; //idem
+	string s;
+	s.resize(len);
+	in.read(&s.front(),len);
+	setEditString(s);
 }
 
 

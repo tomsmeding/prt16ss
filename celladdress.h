@@ -16,8 +16,10 @@ public:
 	CellAddress(unsigned int row,unsigned int column);
 
 	static Maybe<CellAddress> fromRepresentation(string repr); //converts something like "A1" to a CellAddress
-
 	string toRepresentation() const; //returns a string representation of this
+
+	static CellAddress deserialise(istream &in); //deserialises from stream into a new CellAddress
+	void serialise(ostream &os) const;
 };
 
 bool operator==(const CellAddress &a,const CellAddress &b);

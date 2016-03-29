@@ -1,4 +1,5 @@
 #include "celladdress.h"
+#include "util.h"
 
 using namespace std;
 
@@ -43,6 +44,17 @@ string CellAddress::toRepresentation() const {
 		}
 	}
 	return string(rev.crbegin(),rev.crend())+to_string(row+1);
+}
+
+CellAddress CellAddress::deserialise(istream &in){
+	unsigned int row=readUInt32LE(in);
+	unsigned int column=readUInt32LE(in);
+	return CellAddress(row,column);
+}
+
+void CellAddress::serialise(ostream &os) const {
+	writeUInt32LE(os,row);
+	writeUInt32LE(os,column);
 }
 
 

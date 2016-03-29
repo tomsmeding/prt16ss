@@ -1,5 +1,7 @@
 #include "spreadsheet.h"
 #include "cells.h"
+#include "util.h"
+#include <fstream>
 #include <vector>
 #include <stdexcept>
 
@@ -24,10 +26,20 @@ Cell& CellArray::at(CellAddress addr){
 }
 
 void CellArray::ensureSize(unsigned int w,unsigned int h){
+	resize(max(w,width()),max(h,height()));
+}
+
+void CellArray::resize(unsigned int w,unsigned int h){
 	if(w==-1U||h==-1U){ //protection against error values
 		throw out_of_range("-1 dimension in CellArray::ensureSize");
 	}
-	if(width()<w){
+	if(w<width()){
+		for(size_t y=0;y<height();y++){
+			for(size_t x=width()-1;x>=w;x--){
+				cells[y].pop_back();
+			}
+		}
+	} else if(w>width()){
 		for(size_t y=0;y<height();y++){
 			cells[y].reserve(w);
 			for(size_t x=cells[y].size();x<w;x++){
@@ -35,11 +47,15 @@ void CellArray::ensureSize(unsigned int w,unsigned int h){
 			}
 		}
 	}
-	while(height()<h){
-		cells.emplace_back();
-		cells.back().reserve(w);
-		for(size_t x=0;x<w;x++){
-			cells.back().emplace_back(CellAddress(cells.size()-1,x));
+	if(h<height()){
+		cells.erase(cells.begin()+h,cells.end());
+	} else {
+		while(h>height()){
+			cells.emplace_back();
+			cells.back().reserve(w);
+			for(size_t x=0;x<w;x++){
+				cells.back().emplace_back(CellAddress(cells.size()-1,x));
+			}
 		}
 	}
 }
@@ -111,6 +127,59 @@ unsigned int Spreadsheet::getHeight() const {
 bool Spreadsheet::inBounds(CellAddress addr) const {
 	return addr.row<getHeight()&&addr.column<getWidth();
 }
+
+
+/*
+Serialisation file format:
+Every number is stored as an unsigned 32-bit int, in little-endian order.
+Every string stored is prefixed with its length.
+The file starts with the width and height of the sheet. Then follow all the
+cells, in row-major order.
+*/
+
+bool Spreadsheet::saveToDisk(string fname) const {
+	ofstream out(fname);
+	if(out.fail())return false;
+	unsigned int x,y,w=getWidth(),h=getHeight();
+	writeUInt32LE(out,w);
+	writeUInt32LE(out,h);
+	string text;
+	for(y=0;y<h;y++)for(x=0;x<w;x++){
+		cells[CellAddress(y,x)].serialise(out);
+		if(out.fail()){
+			out.close();
+			return false;
+		}
+	}
+	if(out.fail()){
+		out.close();
+		return false;
+	}
+	out.close();
+	return true;
+}
+
+bool Spreadsheet::loadFromDisk(string fname){
+	ifstream in(fname);
+	if(in.fail())return false;
+	unsigned int x,y,w,h;
+	w=readUInt32LE(in);
+	h=readUInt32LE(in);
+	if(in.fail())return false;
+	cells.resize(w,h);
+	string text;
+	for(y=0;y<h;y++)for(x=0;x<w;x++){
+		cells[CellAddress(y,x)].deserialise(in);
+		if(in.fail())return false;
+	}
+	if(in.fail()){
+		in.close();
+		return false;
+	}
+	in.close();
+	return true;
+}
+
 
 Maybe<string> Spreadsheet::getCellDisplayString(CellAddress addr) {
 	if(!inBounds(addr))return Nothing();

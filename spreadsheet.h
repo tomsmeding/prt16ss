@@ -26,6 +26,7 @@ public:
 	Cell& at(CellAddress addr);
 
 	void ensureSize(unsigned int w,unsigned int h);
+	void resize(unsigned int w,unsigned int h);
 
 	/*CellArray::iterator begin();
 	CellArray::iterator end();*/
@@ -66,8 +67,10 @@ class Spreadsheet{
 public:
 	Spreadsheet(unsigned int width,unsigned int height);
 
-	Errtype saveToDisk(string fname) const; //asks the model to save itself to the specified file
-	Errtype loadFromDisk(string fname); //asks the model to load itself from the specified file
+	//functions for saving and loading to/from files;
+	//return whether successful
+	bool saveToDisk(string fname) const;
+	bool loadFromDisk(string fname);
 
 	Maybe<string> getCellDisplayString(CellAddress addr); //gets string for that cell for display in the sheet;
 	                                                      //(Nothing if out of bounds)

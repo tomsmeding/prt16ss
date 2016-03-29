@@ -3,6 +3,7 @@
 #include "celladdress.h"
 #include "maybe.h"
 #include "spreadsheet.h"
+#include <iostream>
 #include <vector>
 #include <string>
 #include <set>
@@ -44,6 +45,9 @@ public:
 	void update(const CellArray &cells);
 
 	vector<CellAddress> getDependencies() const; //returns list of dependencies for this cell
+
+	void serialise(ostream &os) const; //serialises the cell to the stream
+	void deserialise(istream &in); //deserialises the cell from the stream
 };
 
 class CellValue{
