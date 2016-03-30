@@ -107,19 +107,19 @@ void Cell::deserialise(istream &in){
 	if(in.fail())return; //random allocation prevention
 	revdeps.clear();
 	unsigned int i;
-	cerr<<"Cell::des("<<address.toRepresentation()<<"): revdeps:";
+	//cerr<<"Cell::des("<<address.toRepresentation()<<"): revdeps:";
 	for(i=0;i<nrevdeps;i++){
 		CellAddress ca=CellAddress::deserialise(in);
-		cerr<<' '<<ca.toRepresentation();
+		//cerr<<' '<<ca.toRepresentation();
 		revdeps.insert(ca);
 		// revdeps.insert(CellAddress::deserialise(in));
 	}
-	cerr<<"; edit: ";
+	//cerr<<"; edit: ";
 	unsigned int len=readUInt32LE(in);
 	if(in.fail())return;
 	string s;
 	s.resize(len);
 	in.read(&s.front(),len);
-	cerr<<s<<endl;
+	//cerr<<s<<endl;
 	setEditString(s);
 }

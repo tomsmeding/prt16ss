@@ -64,6 +64,11 @@ class Spreadsheet{
 	//Assumes addr in bounds!
 	set<CellAddress> recursiveUpdate(CellAddress addr,bool *circularrefs,bool updatefirst);
 
+	//checks whether the chain of dependencies starting from addr contains a cycle
+	//the second method should not be used directly; the first calls the second
+	bool checkCircularDependencies(CellAddress addr);
+	bool checkCircularDependencies(CellAddress addr,set<CellAddress> &seen);
+
 public:
 	Spreadsheet(unsigned int width,unsigned int height);
 

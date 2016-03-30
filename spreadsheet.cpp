@@ -151,10 +151,6 @@ bool Spreadsheet::saveToDisk(string fname) const {
 			return false;
 		}
 	}
-	if(out.fail()){
-		out.close();
-		return false;
-	}
 	out.close();
 	return true;
 }
@@ -172,9 +168,8 @@ bool Spreadsheet::loadFromDisk(string fname){
 		cells[CellAddress(y,x)].deserialise(in);
 		if(in.fail())return false;
 	}
-	if(in.fail()){
-		in.close();
-		return false;
+	for(y=0;y<h;y++)for(x=0;x<w;x++){
+		recursiveUpdate(CellAddress(y,x),nullptr,true);
 	}
 	in.close();
 	return true;
@@ -191,25 +186,62 @@ Maybe<string> Spreadsheet::getCellEditString(CellAddress addr) {
 	return cells[addr].getEditString();
 }
 
+bool Spreadsheet::checkCircularDependencies(CellAddress addr){
+	set<CellAddress> seen;
+	return checkCircularDependencies(addr,seen);
+}
+
+bool Spreadsheet::checkCircularDependencies(CellAddress addr,set<CellAddress> &seen){
+	pair<set<CellAddress>::iterator,bool> insertret=seen.insert(addr);
+	if(!insertret.second){ //already existed
+		return true;
+	}
+	for(const CellAddress &revdepaddr : cells[addr].getReverseDependencies()){
+		if(checkCircularDependencies(revdepaddr,seen))return true;
+	}
+	seen.erase(insertret.first);
+	return false;
+}
+
 set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularrefs,bool updatefirst){
-	if(circularrefs)*circularrefs=false;
+	if(circularrefs){
+		if(checkCircularDependencies(addr)){
+			*circularrefs=true;
+			return set<CellAddress>();
+		} else {
+			*circularrefs=false;
+		}
+	}
 	Cell &cell=cells[addr];
 	if(updatefirst)cell.update(cells);
 	set<CellAddress> seen;
 	seen.insert(addr);
+	//cerr<<"recursiveUpdate("<<addr.toRepresentation()<<','<<circularrefs<<','<<updatefirst<<"):"<<endl;
 	set<CellAddress> revdeps=cell.getReverseDependencies();
 	while(revdeps.size()){
+		//cerr<<"- revdeps:"; for(CellAddress d : revdeps)cerr<<' '<<d.toRepresentation(); cerr<<endl;
 		set<CellAddress> newrevdeps;
 		for(CellAddress revdepaddr : revdeps){
+			//cerr<<"  - processing "<<revdepaddr.toRepresentation()<<endl;
 			if(!seen.insert(revdepaddr).second){
-				if(circularrefs)*circularrefs=true;
-				return seen;
+				//cerr<<"    -> CIRCULAR!"<<endl;
+				//if(circularrefs)*circularrefs=true;
+				//return seen;
+				continue;
 			}
 			Cell &revdepcell=cells[revdepaddr];
 			revdepcell.update(cells);
 			const set<CellAddress> d=revdepcell.getReverseDependencies();
 			newrevdeps.insert(d.begin(),d.end());
 		}
+		/*for(const CellAddress &revdepaddr : revdeps){
+			//cerr<<"  (insert "<<revdepaddr.toRepresentation()<<')'<<endl;
+			if(!seen.insert(revdepaddr).second){
+				//cerr<<"  -> CIRCULAR! on "<<revdepaddr.toRepresentation()<<endl;
+				if(circularrefs)*circularrefs=true;
+				return seen;
+			}
+		}*/
 		revdeps=move(newrevdeps);
 	}
 	return seen;
@@ -222,7 +254,14 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 		cells[depaddr].removeReverseDependency(addr);
 	}
 	cell.setEditString(repr);
-	for(const CellAddress &depaddr : cell.getDependencies()){
+	const vector<CellAddress> newcelldeps=cell.getDependencies();
+	for(const CellAddress &depaddr : newcelldeps){
+		if(depaddr==addr){
+			cell.setError("Self-circular reference");
+			return recursiveUpdate(addr,nullptr,false);
+		}
+	}
+	for(const CellAddress &depaddr : newcelldeps){
 		cells[depaddr].addReverseDependency(addr);
 	}
 	bool circularrefs;
