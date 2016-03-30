@@ -1,5 +1,5 @@
 #include "spreadsheet.h"
-#include "cells.h"
+#include "cell.h"
 #include "util.h"
 #include <fstream>
 #include <vector>

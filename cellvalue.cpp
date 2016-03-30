@@ -1,126 +1,12 @@
-#include "spreadsheet.h"
-#include "cells.h"
+#include "cellvalue.h"
 #include "celladdress.h"
+#include "spreadsheet.h"
 #include "conversion.h"
-#include "maybe.h"
-#include "util.h"
-#include <vector>
-#include <string>
-#include <utility>
+#include "cell.h"
 
 using namespace std;
 
-
-Cell::Cell(CellValue *value,CellAddress addr)
-	:value(value),addr(addr){}
-
-Cell::Cell(CellAddress addr)
-	:value(new CellValueBasic<string>("")),addr(addr){}
-
-Cell::Cell(string editString,CellAddress addr)
-	:value(nullptr),addr(addr){
-	setEditString(editString);
-}
-
-Cell::~Cell(){}
-
-Cell Cell::makeErrorCell(string errString,string editString,CellAddress addr){
-	return Cell(new CellValueError(errString,editString),addr);
-}
-
-void Cell::setError(string errString){
-	CellValue *newvalue;
-	if(value){
-		newvalue=new CellValueError(errString,value->getEditString());
-		delete value;
-	} else {
-		newvalue=new CellValueError(errString,"");
-	}
-	value=newvalue;
-}
-
-const set<CellAddress>& Cell::getReverseDependencies() const {
-	return revdeps;
-}
-
-bool Cell::addReverseDependency(CellAddress addr){
-	return revdeps.insert(addr).second;
-}
-
-void Cell::addReverseDependencies(const set<CellAddress> &addrs){
-	for(const CellAddress &addr : addrs){
-		revdeps.insert(addr);
-	}
-}
-
-bool Cell::removeReverseDependency(CellAddress addr){
-	auto it=revdeps.find(addr);
-	if(it==revdeps.end())return false;
-	revdeps.erase(it);
-	return true;
-}
-
-void Cell::setEditString(string s){
-	if(value)delete value;
-	value=CellValue::cellValueFromString(s);
-}
-
-string Cell::getDisplayString() const {
-	return value->getDisplayString();
-}
-
-string Cell::getEditString() const {
-	return value->getEditString();
-}
-
-void Cell::update(const CellArray &cells){
-	if(value->update(cells)){
-		CellValue *newvalue=CellValue::cellValueFromString(value->getEditString());
-		delete value;
-		value=newvalue;
-		value->update(cells);
-	}
-}
-
-vector<CellAddress> Cell::getDependencies() const {
-	return value->getDependencies();
-}
-
-/*
-Serialisation format:
-First the number of reverse dependencies, then a list of them;
-followed by the edit string.
-*/
-void Cell::serialise(ostream &os) const {
-	writeUInt32LE(os,revdeps.size());
-	for(const CellAddress &revdepaddr : revdeps){
-		revdepaddr.serialise(os);
-	}
-	const string &s=value->getEditString();
-	writeUInt32LE(os,s.size());
-	os<<s;
-}
-
-void Cell::deserialise(istream &in){
-	unsigned int nrevdeps=readUInt32LE(in);
-	if(in.fail())return; //won't allocate memory for an insane amount of items
-	revdeps.clear();
-	unsigned int i;
-	for(i=0;i<nrevdeps;i++){
-		revdeps.insert(CellAddress::deserialise(in));
-	}
-	unsigned int len=readUInt32LE(in);
-	if(in.fail())return; //idem
-	string s;
-	s.resize(len);
-	in.read(&s.front(),len);
-	setEditString(s);
-}
-
-
-
 CellValue::~CellValue(){}
-
 
 CellValue* CellValue::cellValueFromString(string s){
 	Maybe<int> intval=convertstring<int>(s);
@@ -142,10 +28,6 @@ CellValue* CellValue::cellValueFromString(string s){
 }
 
 
-
-template <typename T>
-CellValueBasic<T>::CellValueBasic(T value)
-	:value(value){}
 
 template <typename T>
 string CellValueBasic<T>::getDisplayString() const {
