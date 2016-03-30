@@ -10,7 +10,7 @@ BIN = main
 obj_files = $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 
-.PHONY: all clean remake
+.PHONY: all clean remake test
 
 all: $(BIN)
 
@@ -18,6 +18,9 @@ clean:
 	rm -f $(BIN) *.o
 
 remake: clean all
+
+test:
+	python3 modeltest.py
 
 
 $(BIN): $(obj_files)
