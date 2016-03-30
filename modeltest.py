@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import subprocess, shlex
-import sys
+import sys, os
 
 class Interactor:
 	def __init__(self,command,errtoout=False,errto=None):
@@ -18,17 +18,23 @@ class Interactor:
 			stderr=errto)
 
 		self.readbuffer=["",""]
+		self.iolog=""
 
 	def __enter__(self):
 		return self
 
 	def __exit__(self,exc_type,exc_value,traceback):
 		self.proc.kill()
+		if exc_type!=None:
+			print(self.iolog)
 		return False
 
 	def write(self,data):
 		if type(data)==str:
+			self.iolog+=data
 			data=data.encode("utf-8")
+		else:
+			self.iolog+=data.decode("utf-8")
 		cursor=0
 		while cursor<len(data):
 			count=self.proc.stdin.write(data if cursor==0 else data[cursor:])
@@ -51,6 +57,7 @@ class Interactor:
 			if len(buf)==0:
 				raise EOFError("EOF on read from "+("stderr" if stderr else "stdout")+" of process")
 			buf=buf.decode("utf-8")
+			self.iolog+=buf
 			self.readbuffer[bufidx]+=buf
 			idx=self.readbuffer[bufidx].find(terminator,prevlen)
 			if idx==-1:
@@ -73,6 +80,7 @@ class Interactor:
 			if len(buf)==0:
 				raise EOFError("EOF on read from "+("stderr" if stderr else "stdout")+" of process")
 			buf=buf.decode("utf-8")
+			self.iolog+=buf
 			self.readbuffer[bufidx]+=buf
 			if len(self.readbuffer[bufidx])<len(s) and self.readbuffer[bufidx]!=s[:len(self.readbuffer[bufidx])]:
 				doraise=True
@@ -91,8 +99,15 @@ class Interactor:
 				raise EOFError("Could not read from "+("stderr" if stderr else "stdout")+" of process")
 			if len(buf)==0: #actual EOF
 				break
-			out.write(buf.decode("utf-8"))
+			buf=buf.decode("utf-8")
+			self.iolog+=buf
+			out.write(buf)
 		out.flush()
+		self.proc.wait(timeout=1)
+		if self.proc.returncode==None:
+			self.proc.kill()
+		elif self.proc.returncode!=0:
+			raise RuntimeError("Process exited after pipe() with a non-zero status code")
 
 
 def setequal(a,b):
@@ -195,7 +210,7 @@ testcases.append(("Formula updating deeper",[
 	["change C1",changedcheck(["C1","C3"])],
 	["change A3 x","Changed: A3"],
 	["change B3 x",changedcheck(["B3","C2","C3"])],
-	["disp C3","\" 42 5 x\""]
+	["disp C3","\" 42 5 x\""],
 ]))
 testcases.append(("Formula circular dependency detection",[
 	["ensure 3 3"],
@@ -224,6 +239,66 @@ testcases.append(("Formula circular dependency detection",[
 	["edit A2","\"42\""],
 	["edit A3","\"=A2\""],
 ]))
+testcases.append(("Formula self-circular dependency detection",[
+	["change A1 a","Changed: A1"],
+	["disp A1","\"a\""],
+	["change A1 =A1","Changed: A1"],
+	["disp A1","\"ERR:Self-circular reference\""],
+	["change A1 b","Changed: A1"],
+	["disp A1","\"b\""],
+]))
+testcases.append(("Sheet saving and loading",[
+	["ensure 2 2"],
+	["change A1 1","Changed: A1"], #setup data
+	["change B1 2","Changed: B1"],
+	["change A2 =A1 B1","Changed: A2"],
+	["change B2 =A1 A2","Changed: B2"],
+	["disp B2","\"1 1 2\""], #sanity check
+
+	["save _sheet_test_s.txt","Success"], #save
+
+	["change A1 x",changedcheck(["A1","A2","B2"])], #overwrite with garbage
+	["change B1 x",changedcheck(["B1","A2","B2"])],
+	["change A2 x",changedcheck(["A2","B2"])],
+	["change B2 x","Changed: B2"],
+	["change A1 =B1 A2 B2","Changed: A1"],
+
+	["load _sheet_test_s.txt","Success"], #load
+
+	["disp A1","\"1\""], #check data
+	["disp B1","\"2\""],
+	["disp A2","\"1 2\""],
+	["disp B2","\"1 1 2\""],
+
+	["change A1 hoi hoi",changedcheck(["A1","A2","B2"])], #dependency integrity check
+	["disp A1","\"hoi hoi\""],
+	["disp A2","\"hoi hoi 2\""],
+	["disp B2","\"hoi hoi hoi hoi 2\""],
+	["edit B2","\"=A1 A2\""],
+	["change A2 rip",changedcheck(["A2","B2"])],
+	["disp A2","\"rip\""],
+	["disp B2","\"hoi hoi rip\""],
+]))
+testcases.append(("Sheet loading again",[
+	lambda: os.rename("_sheet_test_s.txt","_sheet_test_t.txt"),
+	["load _sheet_test_t.txt","Success"], #load
+
+	["disp A1","\"1\""], #check data
+	["disp B1","\"2\""],
+	["disp A2","\"1 2\""],
+	["disp B2","\"1 1 2\""],
+
+	["change A1 hoi hoi",changedcheck(["A1","A2","B2"])], #dependency integrity check
+	["disp A1","\"hoi hoi\""],
+	["disp A2","\"hoi hoi 2\""],
+	["disp B2","\"hoi hoi hoi hoi 2\""],
+	["edit B2","\"=A1 A2\""],
+	["change A2 rip",changedcheck(["A2","B2"])],
+	["disp A2","\"rip\""],
+	["disp B2","\"hoi hoi rip\""],
+
+	lambda: os.remove("_sheet_test_t.txt"),
+]))
 
 
 if __name__=="__main__":
@@ -235,6 +310,7 @@ if __name__=="__main__":
 			proc.pipe(sys.stdout)
 			# print("\x1B[0m",end="")
 
+
 	class TestingError(Exception): pass
 
 	try:
@@ -242,6 +318,9 @@ if __name__=="__main__":
 			with Interactor("./main",errto=sys.stderr) as proc:
 				try:
 					for itidx,item in enumerate(testcase[1],start=1):
+						if type(item)!=list:
+							item()
+							continue
 						proc.expect("> ")
 						proc.write(item[0])
 						proc.write("\n")
