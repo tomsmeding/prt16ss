@@ -302,15 +302,6 @@ testcases.append(("Sheet loading again",[
 
 
 if __name__=="__main__":
-	with Interactor("make",errtoout=True) as proc:
-		line=proc.getline()
-		if line!="make: Nothing to be done for `all'.":
-			# print("\x1B[34m",end="")
-			print(line)
-			proc.pipe(sys.stdout)
-			# print("\x1B[0m",end="")
-
-
 	class TestingError(Exception): pass
 
 	try:

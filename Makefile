@@ -19,7 +19,7 @@ clean:
 
 remake: clean all
 
-test:
+test: all
 	python3 modeltest.py
 
 
