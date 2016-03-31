@@ -11,7 +11,7 @@ class Either{
 public:
 	~Either();
 	Either(T value); //makes a Left-value for you
-	Either(U value); //makes a Left-value for you
+	Either(U value); //makes a Right-value for you
 
 	static Either<T,U> Left(T value); //makes a Left-value for you
 	static Either<T,U> Right(U value); //makes a Right-value for you
