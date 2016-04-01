@@ -76,14 +76,31 @@ CellRange::CellRange(CellAddress from,CellAddress to)
 
 Maybe<CellRange> CellRange::fromRepresentation(string repr){
 	const size_t idx=repr.find(':');
-	if(idx==string::npos)return Nothing();
+	if(idx==string::npos){
+		return Nothing();
+	}
 	Maybe<CellAddress> mfrom=CellAddress::fromRepresentation(repr.substr(0,idx));
-	if(mfrom.isNothing())return Nothing();
+	if(mfrom.isNothing()){
+		return Nothing();
+	}
 	Maybe<CellAddress> mto=CellAddress::fromRepresentation(repr.substr(idx+1));
-	if(mto.isNothing())return Nothing();
-	return CellRange(mfrom.fromJust(),mto.fromJust());
+	if(mto.isNothing()){
+		return Nothing();
+	}
+	CellAddress from=mfrom.fromJust(),to=mto.fromJust();
+	if(from.column>to.column){
+		swap(from.column,to.column);
+	}
+	if(from.row>to.row){
+		swap(from.row,to.row);
+	}
+	return CellRange(from,to);
 }
 
 string CellRange::toRepresentation() const {
 	return from.toRepresentation()+":"+to.toRepresentation();
+}
+
+unsigned int CellRange::size() const {
+	return (to.column-from.column+1)*(to.row-from.row+1);
 }

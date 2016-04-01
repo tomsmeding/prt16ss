@@ -40,6 +40,8 @@ public:
 
 	static Maybe<CellRange> fromRepresentation(string repr); //converts from something like "A1:C3"
 	string toRepresentation() const; //returns a string representation of this
+
+	unsigned int size() const; //number of cells spanned
 };
 
 bool operator==(const CellRange &a,const CellRange &b);
