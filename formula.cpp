@@ -448,7 +448,7 @@ Either<string,ASTNode*> parseExpression(const vector<Token> &tokens){
 
 
 
-int main(){
+/*int main(){
 	string line;
 	while(cin){
 		cout<<"f> ";
@@ -474,4 +474,4 @@ int main(){
 			}
 		}
 	}
-}
+}*/
