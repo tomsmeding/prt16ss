@@ -1,6 +1,7 @@
 #pragma once
 
 #include "maybe.h"
+#include "either.h"
 #include <string>
 #include <vector>
 
@@ -44,19 +45,20 @@ public:
 	vector<CellAddress> getDependencies() const;
 };
 
+
+class Formula;
+
 class CellValueFormula : public CellValue{
-	double doubleval;
-	string stringval;
-	bool isstring;
+	Formula *parsed;
+	string dispString;
 	string editString;
-	vector<CellAddress> parsed;
 
 	CellValueFormula() = default;
 
 public:
 	//returns Nothing() on parse error
 	//not update()'d yet!
-	static Maybe<CellValueFormula*> parseAndCreateFormula(string s);
+	static Either<string,CellValueFormula*> parseAndCreateFormula(string s);
 
 	string getDisplayString() const;
 	string getEditString() const;

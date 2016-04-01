@@ -3,6 +3,7 @@
 #include "spreadsheet.h"
 #include "conversion.h"
 #include "cell.h"
+#include "formula.h"
 
 using namespace std;
 
@@ -18,11 +19,11 @@ CellValue* CellValue::cellValueFromString(string s){
 		return new CellValueBasic<double>(doubleval.fromJust());
 	}
 	if(s.size()&&s[0]=='='){
-		Maybe<CellValueFormula*> mcv=CellValueFormula::parseAndCreateFormula(s);
-		if(mcv.isNothing()){
-			return new CellValueError("Invalid formula",s);
+		Either<string,CellValueFormula*> mcv=CellValueFormula::parseAndCreateFormula(s);
+		if(mcv.isLeft()){
+			return new CellValueError("Invalid formula: "+mcv.fromLeft(),s);
 		}
-		return mcv.fromJust();
+		return mcv.fromRight();
 	}
 	return new CellValueBasic<string>(s);
 }
@@ -56,52 +57,30 @@ vector<CellAddress> CellValueBasic<T>::getDependencies() const {
 
 
 
-Maybe<CellValueFormula*> CellValueFormula::parseAndCreateFormula(string s){ //STUB
+Either<string,CellValueFormula*> CellValueFormula::parseAndCreateFormula(string s){
+	Either<string,Formula*> mparsed=Formula::parse(s.substr(1));
+	if(mparsed.isLeft())return mparsed.fromLeft();
 	CellValueFormula *cv=new CellValueFormula;
-	size_t cursor=1,idx,sz=s.size();
-	while(cursor<sz){
-		idx=s.find(' ',cursor);
-		if(idx==string::npos)idx=sz;
-		Maybe<CellAddress> mca=CellAddress::fromRepresentation(s.substr(cursor,idx-cursor));
-		if(mca.isNothing()){
-			return Nothing();
-		}
-		cv->parsed.push_back(mca.fromJust());
-		for(cursor=idx;cursor<sz;cursor++){
-			if(s[cursor]!=' ')break;
-		}
-	}
+	cv->parsed=mparsed.fromRight();
 	cv->editString=s;
 	return cv;
 }
 
 string CellValueFormula::getDisplayString() const {
-	if(isstring)return stringval;
-	else return to_string(doubleval);
+	return dispString;
 }
 
 string CellValueFormula::getEditString() const {
 	return editString;
 }
 
-bool CellValueFormula::update(const CellArray &cells){ //STUB
-	isstring=true;
-	stringval.clear();
-	size_t sz=parsed.size();
-	for(size_t i=0;i<sz;i++){
-		if(i!=0)stringval+=' ';
-		if(parsed[i].row>=cells.height()||parsed[i].column>=cells.width()){
-			//FIX THIS
-			stringval+="???";
-		} else {
-			stringval+=cells[parsed[i]].getDisplayString();
-		}
-	}
+bool CellValueFormula::update(const CellArray &cells){
+	dispString=parsed->evaluate(cells);
 	return false;
 }
 
-vector<CellAddress> CellValueFormula::getDependencies() const { //STUB
-	return parsed;
+vector<CellAddress> CellValueFormula::getDependencies() const {
+	return parsed->getDependencies();
 }
 
 
