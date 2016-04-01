@@ -30,3 +30,16 @@ namespace std{
 		bool operator()(const CellAddress &a,const CellAddress &b);
 	};
 }
+
+
+class CellRange{
+public:
+	CellAddress from,to;
+
+	CellRange(CellAddress from,CellAddress to);
+
+	static Maybe<CellRange> fromRepresentation(string repr); //converts from something like "A1:C3"
+	string toRepresentation() const; //returns a string representation of this
+};
+
+bool operator==(const CellRange &a,const CellRange &b);

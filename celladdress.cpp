@@ -68,3 +68,22 @@ namespace std{
 		return a.row<b.row||(a.row==b.row&&a.column<b.column);
 	}
 }
+
+
+
+CellRange::CellRange(CellAddress from,CellAddress to)
+	:from(from),to(to){}
+
+Maybe<CellRange> CellRange::fromRepresentation(string repr){
+	const size_t idx=repr.find(':');
+	if(idx==string::npos)return Nothing();
+	Maybe<CellAddress> mfrom=CellAddress::fromRepresentation(repr.substr(0,idx));
+	if(mfrom.isNothing())return Nothing();
+	Maybe<CellAddress> mto=CellAddress::fromRepresentation(repr.substr(idx+1));
+	if(mto.isNothing())return Nothing();
+	return CellRange(mfrom.fromJust(),mto.fromJust());
+}
+
+string CellRange::toRepresentation() const {
+	return from.toRepresentation()+":"+to.toRepresentation();
+}
