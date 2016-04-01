@@ -16,7 +16,18 @@ class CellArray{
 	vector<vector<Cell>> cells;
 
 public:
-	using iterator = CellArrayIt;
+	using const_iterator = CellArrayIt;
+
+	class RangeWrapper{
+		const CellArray *cells;
+		CellRange range;
+
+	public:
+		RangeWrapper(const CellArray &cells,CellRange range);
+
+		CellArray::const_iterator begin() const;
+		CellArray::const_iterator end() const;
+	};
 
 	unsigned int width() const;
 	unsigned int height() const;
@@ -30,24 +41,24 @@ public:
 
 	/*CellArray::iterator begin();
 	CellArray::iterator end();*/
-	CellArray::iterator range(CellAddress a,CellAddress b);
+	CellArray::RangeWrapper range(CellRange r) const;
 };
 
 class CellArrayIt : public iterator<input_iterator_tag,Cell*>{
-	CellArray *cells;
+	const CellArray *cells;
 	CellAddress begin,end,cursor;
 	bool isend;
 
 	CellArrayIt(); //end constructor
 public:
-	CellArrayIt(CellArray &cells,CellAddress begin,CellAddress end);
+	CellArrayIt(const CellArray &cells,CellRange r);
 
 	static CellArrayIt endit();
 
 	bool operator==(const CellArrayIt &other) const;
 	bool operator!=(const CellArrayIt &other) const;
-	Cell operator*() const;
-	Cell* operator->() const;
+	const Cell& operator*() const;
+	const Cell* operator->() const;
 	CellArrayIt& operator++();
 };
 

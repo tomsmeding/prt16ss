@@ -60,8 +60,20 @@ void CellArray::resize(unsigned int w,unsigned int h){
 	}
 }
 
-CellArray::iterator CellArray::range(CellAddress a,CellAddress b){
-	return CellArrayIt(*this,a,b);
+CellArray::RangeWrapper CellArray::range(CellRange r) const {
+	return RangeWrapper(*this,r);
+}
+
+
+CellArray::RangeWrapper::RangeWrapper(const CellArray &cells,CellRange range)
+	:cells(&cells),range(range){}
+
+CellArray::const_iterator CellArray::RangeWrapper::begin() const {
+	return CellArrayIt(*cells,range);
+}
+
+CellArray::const_iterator CellArray::RangeWrapper::end() const {
+	return CellArrayIt::endit();
 }
 
 
@@ -69,8 +81,8 @@ CellArray::iterator CellArray::range(CellAddress a,CellAddress b){
 CellArrayIt::CellArrayIt()
 	:cells(nullptr),begin(0,0),end(0,0),cursor(0,0),isend(true){}
 
-CellArrayIt::CellArrayIt(CellArray &cells,CellAddress begin,CellAddress end)
-	:cells(&cells),begin(begin),end(end),cursor(begin),isend(false){}
+CellArrayIt::CellArrayIt(const CellArray &cells,CellRange r)
+	:cells(&cells),begin(r.from),end(r.to),cursor(begin),isend(false){}
 
 CellArrayIt CellArrayIt::endit(){
 	return CellArrayIt();
@@ -88,12 +100,12 @@ bool CellArrayIt::operator!=(const CellArrayIt &other) const {
 	return !operator==(other);
 }
 
-Cell CellArrayIt::operator*() const {
+const Cell& CellArrayIt::operator*() const {
 	if(isend)throw logic_error("Dereference on end iterator (CellArrayIt)");
 	return (*cells)[cursor];
 }
 
-Cell* CellArrayIt::operator->() const {
+const Cell* CellArrayIt::operator->() const {
 	if(isend)throw logic_error("Dereference on end iterator (CellArrayIt)");
 	return &(*cells)[cursor];
 }
