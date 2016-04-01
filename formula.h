@@ -33,8 +33,6 @@ public:
 	ASTNode(astnodetype_t type,CellRange rangeval);
 
 	~ASTNode();
-
-	void print(int tablevel=0) const;
 };
 
 enum tokentype_t{
@@ -44,17 +42,6 @@ enum tokentype_t{
 	TT_RANGE,
 	TT_NAME,
 	TT_SYMBOL
-};
-
-#include <unordered_map>
-
-unordered_map<int,string> tokenstring={
-	{TT_STRING,"TT_STRING"},
-	{TT_NUMBER,"TT_NUMBER"},
-	{TT_ADDRESS,"TT_ADDRESS"},
-	{TT_RANGE,"TT_RANGE"},
-	{TT_NAME,"TT_NAME"},
-	{TT_SYMBOL,"TT_SYMBOL"}
 };
 
 class Token{

@@ -1,5 +1,5 @@
 #include "formula.h"
-#include <iostream>
+//#include <iostream>
 #include <unordered_map>
 #include <climits>
 
@@ -23,7 +23,7 @@ ASTNode::~ASTNode(){
 	}
 }
 
-void ASTNode::print(int tablevel) const {
+/*void ASTNode::print(int tablevel) const {
 	cout<<string(tablevel*2,' ')<<'(';
 	switch(type){
 		case AN_FUNCTION: cout<<"FUNCTION "<<strval; break;
@@ -41,7 +41,7 @@ void ASTNode::print(int tablevel) const {
 		}
 		cout<<string(tablevel*2,' ')<<')'<<endl;
 	} else cout<<')'<<endl;
-}
+}*/
 
 
 
