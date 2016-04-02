@@ -122,6 +122,7 @@ Maybe<Formula::Token> Formula::tryTokeniseNameAddressRange(const string &formula
 Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &formula){
 	int i,len=formula.size();
 	vector<Token> tokens;
+	bool prevWasOperator=true;
 	for(i=0;i<len;i++){
 		if(isspace(formula[i]))continue;
 		else if(formula[i]=='"'||formula[i]=='\''){
@@ -139,18 +140,25 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 			}
 			if(i==len)return string("String niet afgesloten met een quote");
 			tokens.push_back(move(token));
-		} else if(isdigit(formula[i])){
+			prevWasOperator=false;
+		} else if(isdigit(formula[i])||(
+		          i<len-1&&
+		          prevWasOperator&&
+		          formula[i]=='-'&&
+		          isdigit(formula[i+1]))){
 			const char *iptr=&formula[i];
 			char *endptr;
 			strtod(iptr,&endptr);
 			int nparsed=endptr-iptr;
-			//Because the string passed to strtod always starts with a digit,
-			//its conversion should always at least succeed (or be out of range,
-			//which doesn't really matter)
+			//Because the string passed to strtod always starts with a digit
+			//(or a minus sign followed by a digit), its conversion should always
+			//at least succeed (or be out of range, which doesn't really matter)
 			tokens.emplace_back(TT_NUMBER,formula.substr(i,nparsed));
 			i+=nparsed-1; //set i on the last character parsed
+			prevWasOperator=false;
 		} else if(strchr("+-*/%^()",formula[i])!=nullptr){
 			tokens.emplace_back(TT_SYMBOL,string(1,formula[i]));
+			prevWasOperator=formula[i]!=')';
 		} else if(isupper(formula[i])){
 			Maybe<Token> mtoken=tryTokeniseNameAddressRange(formula,i);
 			i--;
@@ -158,6 +166,7 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 				return string("Ongeldig adres of range in formule");
 			}
 			tokens.push_back(mtoken.fromJust());
+			prevWasOperator=false; //for good order
 		} else {
 			return string("Ongeldig teken '")+formula[i]+"' in formule";
 		}
@@ -392,9 +401,14 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,const CellArray &ce
 				if(arg[i].isLeft())argd[i]=arg[i].fromLeft();
 				else {
 					const string &argstr=arg[i].fromRight();
-					startp=argstr.data();
-					argd[i]=strtod(startp,&endp);
-					if(endp-startp!=(ptrdiff_t)argstr.size())argd[i]=nan("");
+					if(argstr.size()==0)argd[i]=nan("");
+					else {
+						startp=argstr.data();
+						argd[i]=strtod(startp,&endp);
+						if(endp-startp!=(ptrdiff_t)argstr.size()){
+							argd[i]=nan("");
+						}
+					}
 				}
 			}
 			if(node->strval=="+")return argd[0]+argd[1];
