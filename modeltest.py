@@ -161,9 +161,9 @@ testcases.append(("Formulas",[
 	["change B1 20","Changed: B1"],
 	["change C1 30","Changed: C1"],
 
-	["change A2 =A1 B1 C1","Changed: A2"],
-	["disp A2","\"10 20 30\""],
-	["edit A2","\"=A1 B1 C1\""],
+	["change A2 =A1+B1+C1","Changed: A2"],
+	["disp A2","\"60\""],
+	["edit A2","\"=A1+B1+C1\""],
 ]))
 testcases.append(("Formula updating",[
 	["ensure 3 3"],
@@ -171,19 +171,19 @@ testcases.append(("Formula updating",[
 	["change B1 20","Changed: B1"],
 	["change C1 30","Changed: C1"],
 
-	["change A2 =A1 B1 C1","Changed: A2"],
+	["change A2 =A1+B1+C1","Changed: A2"],
 
 	["change B1 42",changedcheck(["B1","A2"])],
 	["disp B1","\"42\""],
-	["disp A2","\"10 42 30\""],
-	["edit A2","\"=A1 B1 C1\""],
+	["disp A2","\"82\""],
+	["edit A2","\"=A1+B1+C1\""],
 ]))
 testcases.append(("Formula updating restore",[
 	["ensure 3 3"],
 	["change A1 10","Changed: A1"],
 	["change B1 20","Changed: B1"],
 	["change C1 30","Changed: C1"],
-	["change A2 =A1 B1 C1","Changed: A2"],
+	["change A2 =A1*(B1-C1)","Changed: A2"],
 	["change B1 42",changedcheck(["B1","A2"])],
 	["change A2 hoi","Changed: A2"],
 	["change C1 41","Changed: C1"],
