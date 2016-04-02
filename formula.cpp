@@ -235,35 +235,39 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 				i+=3;
 				break;
 			case TT_SYMBOL:
-				const int prec=precedencemap[tokens[i].value];
-				const bool leftassoc=leftassocmap[tokens[i].value];
-				while(opstack.size()){
-					const int otherprec=precedencemap[opstack.back()];
-					// both left-assoc: also pop equal-prec operators
-					// both right-assoc: only pop higher-prec operators
-					if(otherprec>prec||(leftassoc&&otherprec==prec)){
-						if(nodestack.size()<2){
-							for(ASTNode *node : nodestack)delete node;
-							return "Not enough arguments to operator "+opstack.back()+"?";
-						}
-						node=new ASTNode(AN_OPERATOR,opstack.back());
-						node->children.push_back(nodestack[nodestack.size()-2]);
-						node->children.push_back(nodestack.back());
-						nodestack.pop_back();
-						nodestack.pop_back();
-						nodestack.push_back(node);
-						opstack.pop_back();
-					} else break;
-				}
-				if(tokens[i].value==")"){
-					if(opstack.size()==0){
-						for(ASTNode *node : nodestack)delete node;
-						return string("Excess closing parenthesis");
-					}
-					//because of their precedence, we can now assume opstack.back()=="("
-					opstack.pop_back();
+				if(tokens[i].value=="("){
+					opstack.push_back("(");
 				} else {
-					opstack.push_back(tokens[i].value);
+					const int prec=precedencemap[tokens[i].value];
+					const bool leftassoc=leftassocmap[tokens[i].value];
+					while(opstack.size()){
+						const int otherprec=precedencemap[opstack.back()];
+						// both left-assoc: also pop equal-prec operators
+						// both right-assoc: only pop higher-prec operators
+						if(otherprec>prec||(leftassoc&&otherprec==prec)){
+							if(nodestack.size()<2){
+								for(ASTNode *node : nodestack)delete node;
+								return "Not enough arguments to operator "+opstack.back()+"?";
+							}
+							node=new ASTNode(AN_OPERATOR,opstack.back());
+							node->children.push_back(nodestack[nodestack.size()-2]);
+							node->children.push_back(nodestack.back());
+							nodestack.pop_back();
+							nodestack.pop_back();
+							nodestack.push_back(node);
+							opstack.pop_back();
+						} else break;
+					}
+					if(tokens[i].value==")"){
+						if(opstack.size()==0){
+							for(ASTNode *node : nodestack)delete node;
+							return string("Excess closing parenthesis");
+						}
+						//because of their precedence, we can now assume opstack.back()=="("
+						opstack.pop_back();
+					} else {
+						opstack.push_back(tokens[i].value);
+					}
 				}
 				break;
 		}
