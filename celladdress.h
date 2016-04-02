@@ -27,7 +27,12 @@ bool operator==(const CellAddress &a,const CellAddress &b);
 namespace std{
 	template <>
 	struct less<CellAddress>{
-		bool operator()(const CellAddress &a,const CellAddress &b);
+		bool operator()(const CellAddress &a,const CellAddress &b) const;
+	};
+
+	template <>
+	struct hash<CellAddress>{
+		size_t operator()(const CellAddress &a) const;
 	};
 }
 

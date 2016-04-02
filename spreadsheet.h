@@ -4,6 +4,7 @@
 #include "celladdress.h"
 #include <vector>
 #include <set>
+#include <unordered_map>
 #include <string>
 
 using namespace std;
@@ -64,6 +65,10 @@ public:
 
 class Spreadsheet{
 	CellArray cells;
+
+	//reverse dependencies outside of allocated area
+	//key is cell that is depended on by the value
+	unordered_map<CellAddress,CellAddress> revdepsOutside;
 
 	unsigned int getWidth() const; //return dimensions of `cells`
 	unsigned int getHeight() const;

@@ -64,8 +64,12 @@ bool operator==(const CellAddress &a,const CellAddress &b){
 
 
 namespace std{
-	bool less<CellAddress>::operator()(const CellAddress &a,const CellAddress &b){
+	bool less<CellAddress>::operator()(const CellAddress &a,const CellAddress &b) const {
 		return a.row<b.row||(a.row==b.row&&a.column<b.column);
+	}
+
+	size_t hash<CellAddress>::operator()(const CellAddress &a) const {
+		return ((size_t)a.row<<32)|a.column;
 	}
 }
 

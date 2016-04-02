@@ -145,8 +145,9 @@ bool Spreadsheet::inBounds(CellAddress addr) const {
 Serialisation file format:
 Every number is stored as an unsigned 32-bit int, in little-endian order.
 Every string stored is prefixed with its length.
-The file starts with the width and height of the sheet. Then follow all the
-cells, in row-major order.
+The file starts with the width and height of the sheet. Then the number of
+revdepsOutside, followed by them, in pairs.
+Finally all the cells, in row-major order.
 */
 
 bool Spreadsheet::saveToDisk(string fname) const {
@@ -155,6 +156,11 @@ bool Spreadsheet::saveToDisk(string fname) const {
 	unsigned int x,y,w=getWidth(),h=getHeight();
 	writeUInt32LE(out,w);
 	writeUInt32LE(out,h);
+	writeUInt32LE(out,revdepsOutside.size());
+	for(const pair<CellAddress,CellAddress> &p : revdepsOutside){
+		p.first.serialise(out);
+		p.second.serialise(out);
+	}
 	string text;
 	for(y=0;y<h;y++)for(x=0;x<w;x++){
 		cells[CellAddress(y,x)].serialise(out);
@@ -175,6 +181,14 @@ bool Spreadsheet::loadFromDisk(string fname){
 	h=readUInt32LE(in);
 	if(in.fail())return false;
 	cells.resize(w,h);
+	unsigned int nrdo=readUInt32LE(in);
+	if(in.fail())return false;
+	revdepsOutside.reserve(nrdo);
+	for(x=0;x<nrdo;x++){
+		CellAddress a=CellAddress::deserialise(in);
+		CellAddress b=CellAddress::deserialise(in);
+		revdepsOutside.emplace(a,b);
+	}
 	string text;
 	for(y=0;y<h;y++)for(x=0;x<w;x++){
 		cells[CellAddress(y,x)].deserialise(in);
@@ -274,7 +288,11 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 		}
 	}
 	for(const CellAddress &depaddr : newcelldeps){
-		cells[depaddr].addReverseDependency(addr);
+		if(inBounds(depaddr)){
+			cells[depaddr].addReverseDependency(addr);
+		} else {
+			revdepsOutside.emplace(depaddr,addr);
+		}
 	}
 	bool circularrefs;
 	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs,true);
@@ -287,4 +305,9 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){
 	cells.ensureSize(width,height);
+	for(const pair<CellAddress,CellAddress> &p : revdepsOutside){
+		if(!inBounds(p.first))continue;
+		cells[p.first].addReverseDependency(p.second);
+		revdepsOutside.erase(p.first); //possible since c++14
+	}
 }
