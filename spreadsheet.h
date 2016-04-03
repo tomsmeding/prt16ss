@@ -1,6 +1,5 @@
 #pragma once
 
-#include "types.h"
 #include "celladdress.h"
 #include <vector>
 #include <set>
