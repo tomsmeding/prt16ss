@@ -5,19 +5,19 @@
 #include <vector>
 #include <stdexcept>
 
-unsigned int CellArray::width() const {
+unsigned int CellArray::width() const noexcept {
 	return cells.size()==0?0:cells[0].size();
 }
 
-unsigned int CellArray::height() const {
+unsigned int CellArray::height() const noexcept {
 	return cells.size();
 }
 
-Cell& CellArray::operator[](CellAddress addr){
+Cell& CellArray::operator[](CellAddress addr) noexcept {
 	return cells[addr.row][addr.column];
 }
 
-const Cell& CellArray::operator[](CellAddress addr) const {
+const Cell& CellArray::operator[](CellAddress addr) const noexcept {
 	return cells[addr.row][addr.column];
 }
 
@@ -60,43 +60,45 @@ void CellArray::resize(unsigned int w,unsigned int h){
 	}
 }
 
-CellArray::RangeWrapper CellArray::range(CellRange r) const {
+CellArray::RangeWrapper CellArray::range(CellRange r) const noexcept {
 	return RangeWrapper(*this,r);
 }
 
 
-CellArray::RangeWrapper::RangeWrapper(const CellArray &cells,CellRange range)
+CellArray::RangeWrapper::RangeWrapper(const CellArray &cells,CellRange range) noexcept
 	:cells(&cells),range(range){}
 
-CellArray::const_iterator CellArray::RangeWrapper::begin() const {
+CellArray::const_iterator CellArray::RangeWrapper::begin() const noexcept {
 	return CellArrayIt(*cells,range);
 }
 
-CellArray::const_iterator CellArray::RangeWrapper::end() const {
+CellArray::const_iterator CellArray::RangeWrapper::end() const noexcept {
 	return CellArrayIt::endit();
 }
 
 
 
-CellArrayIt::CellArrayIt()
+CellArrayIt::CellArrayIt() noexcept
 	:cells(nullptr),begin(0,0),end(0,0),cursor(0,0),isend(true){}
 
-CellArrayIt::CellArrayIt(const CellArray &cells,CellRange r)
+CellArrayIt::CellArrayIt(const CellArray &cells,CellRange r) noexcept
 	:cells(&cells),begin(r.from),end(r.to),cursor(begin),isend(false){}
 
-CellArrayIt CellArrayIt::endit(){
+CellArrayIt CellArrayIt::endit() noexcept {
 	return CellArrayIt();
 }
 
-bool CellArrayIt::operator==(const CellArrayIt &other) const {
+bool CellArrayIt::operator==(const CellArrayIt &other) const noexcept {
+	//if either is an end iterator, the rest of the data doesn't matter
 	if(isend||other.isend)return isend==other.isend;
-	return cells==other.cells&&
+
+	return cells==other.cells&& //else just compare
 	       begin==other.begin&&
 	       end==other.end&&
 	       cursor==other.cursor;
 }
 
-bool CellArrayIt::operator!=(const CellArrayIt &other) const {
+bool CellArrayIt::operator!=(const CellArrayIt &other) const noexcept {
 	return !operator==(other);
 }
 
@@ -110,7 +112,8 @@ const Cell* CellArrayIt::operator->() const {
 	return &(*cells)[cursor];
 }
 
-CellArrayIt& CellArrayIt::operator++(){
+CellArrayIt& CellArrayIt::operator++() noexcept {
+	if(isend)return *this;
 	cursor.column++;
 	if(cursor.column>end.column){
 		cursor.column=begin.column;
@@ -128,15 +131,15 @@ Spreadsheet::Spreadsheet(unsigned int width,unsigned int height){
 	ensureSheetSize(width,height);
 }
 
-unsigned int Spreadsheet::getWidth() const {
+unsigned int Spreadsheet::getWidth() const noexcept {
 	return cells.width();
 }
 
-unsigned int Spreadsheet::getHeight() const {
+unsigned int Spreadsheet::getHeight() const noexcept {
 	return cells.height();
 }
 
-bool Spreadsheet::inBounds(CellAddress addr) const {
+bool Spreadsheet::inBounds(CellAddress addr) const noexcept {
 	return addr.row<getHeight()&&addr.column<getWidth();
 }
 
@@ -149,7 +152,7 @@ The file starts with the width and height of the sheet. Then the number of
 revdepsOutside, followed by them, in pairs.
 Finally all the cells, in row-major order.
 */
-
+#warning TODO fix serialisation of error values: make cellvalues serialisable
 bool Spreadsheet::saveToDisk(string fname) const {
 	ofstream out(fname);
 	if(out.fail())return false;
@@ -202,22 +205,22 @@ bool Spreadsheet::loadFromDisk(string fname){
 }
 
 
-Maybe<string> Spreadsheet::getCellDisplayString(CellAddress addr) {
+Maybe<string> Spreadsheet::getCellDisplayString(CellAddress addr) noexcept {
 	if(!inBounds(addr))return Nothing();
 	return cells[addr].getDisplayString();
 }
 
-Maybe<string> Spreadsheet::getCellEditString(CellAddress addr) {
+Maybe<string> Spreadsheet::getCellEditString(CellAddress addr) noexcept {
 	if(!inBounds(addr))return Nothing();
 	return cells[addr].getEditString();
 }
 
-bool Spreadsheet::checkCircularDependencies(CellAddress addr){
+bool Spreadsheet::checkCircularDependencies(CellAddress addr) noexcept {
 	set<CellAddress> seen;
 	return checkCircularDependencies(addr,seen);
 }
 
-bool Spreadsheet::checkCircularDependencies(CellAddress addr,set<CellAddress> &seen){
+bool Spreadsheet::checkCircularDependencies(CellAddress addr,set<CellAddress> &seen) noexcept {
 	pair<set<CellAddress>::iterator,bool> insertret=seen.insert(addr);
 	if(!insertret.second){ //already existed
 		return true;
@@ -229,7 +232,9 @@ bool Spreadsheet::checkCircularDependencies(CellAddress addr,set<CellAddress> &s
 	return false;
 }
 
-set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularrefs,bool updatefirst){
+set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,
+                                              bool *circularrefs,
+                                              bool updatefirst) noexcept {
 	if(circularrefs){
 		if(checkCircularDependencies(addr)){
 			*circularrefs=true;
@@ -242,17 +247,11 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularref
 	if(updatefirst)cell.update(cells);
 	set<CellAddress> seen;
 	seen.insert(addr);
-	//cerr<<"recursiveUpdate("<<addr.toRepresentation()<<','<<circularrefs<<','<<updatefirst<<"):"<<endl;
 	set<CellAddress> revdeps=cell.getReverseDependencies();
 	while(revdeps.size()){
-		//cerr<<"- revdeps:"; for(CellAddress d : revdeps)cerr<<' '<<d.toRepresentation(); cerr<<endl;
 		set<CellAddress> newrevdeps;
 		for(CellAddress revdepaddr : revdeps){
-			//cerr<<"  - processing "<<revdepaddr.toRepresentation()<<endl;
 			if(!seen.insert(revdepaddr).second){
-				//cerr<<"    -> CIRCULAR!"<<endl;
-				//if(circularrefs)*circularrefs=true;
-				//return seen;
 				continue;
 			}
 			Cell &revdepcell=cells[revdepaddr];
@@ -260,20 +259,12 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,bool *circularref
 			const set<CellAddress> d=revdepcell.getReverseDependencies();
 			newrevdeps.insert(d.begin(),d.end());
 		}
-		/*for(const CellAddress &revdepaddr : revdeps){
-			//cerr<<"  (insert "<<revdepaddr.toRepresentation()<<')'<<endl;
-			if(!seen.insert(revdepaddr).second){
-				//cerr<<"  -> CIRCULAR! on "<<revdepaddr.toRepresentation()<<endl;
-				if(circularrefs)*circularrefs=true;
-				return seen;
-			}
-		}*/
 		revdeps=move(newrevdeps);
 	}
 	return seen;
 }
 
-Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr){
+Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr) noexcept {
 	if(!inBounds(addr))return Nothing();
 	Cell &cell=cells[addr];
 	for(const CellAddress &depaddr : cell.getDependencies()){

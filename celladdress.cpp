@@ -3,10 +3,10 @@
 
 using namespace std;
 
-CellAddress::CellAddress(unsigned int row,unsigned int column)
+CellAddress::CellAddress(unsigned int row,unsigned int column) noexcept
 	:row(row),column(column){}
 
-Maybe<CellAddress> CellAddress::fromRepresentation(string repr){
+Maybe<CellAddress> CellAddress::fromRepresentation(string repr) noexcept {
 	const int sz=repr.size();
 	int i;
 	int row=0,column=0;
@@ -28,7 +28,7 @@ Maybe<CellAddress> CellAddress::fromRepresentation(string repr){
 	return CellAddress(row,column);
 }
 
-string CellAddress::toRepresentation() const {
+string CellAddress::toRepresentation() const noexcept {
 	string rev;
 	unsigned int r=column+1;
 	while(r){
@@ -58,27 +58,27 @@ void CellAddress::serialise(ostream &os) const {
 }
 
 
-bool operator==(const CellAddress &a,const CellAddress &b){
+bool operator==(const CellAddress &a,const CellAddress &b) noexcept {
 	return a.row==b.row&&a.column==b.column;
 }
 
 
 namespace std{
-	bool less<CellAddress>::operator()(const CellAddress &a,const CellAddress &b) const {
+	bool less<CellAddress>::operator()(const CellAddress &a,const CellAddress &b) const noexcept {
 		return a.row<b.row||(a.row==b.row&&a.column<b.column);
 	}
 
-	size_t hash<CellAddress>::operator()(const CellAddress &a) const {
+	size_t hash<CellAddress>::operator()(const CellAddress &a) const noexcept {
 		return ((size_t)a.row<<32)|a.column;
 	}
 }
 
 
 
-CellRange::CellRange(CellAddress from,CellAddress to)
+CellRange::CellRange(CellAddress from,CellAddress to) noexcept
 	:from(from),to(to){}
 
-Maybe<CellRange> CellRange::fromRepresentation(string repr){
+Maybe<CellRange> CellRange::fromRepresentation(string repr) noexcept {
 	const size_t idx=repr.find(':');
 	if(idx==string::npos){
 		return Nothing();
@@ -101,10 +101,10 @@ Maybe<CellRange> CellRange::fromRepresentation(string repr){
 	return CellRange(from,to);
 }
 
-string CellRange::toRepresentation() const {
+string CellRange::toRepresentation() const noexcept {
 	return from.toRepresentation()+":"+to.toRepresentation();
 }
 
-unsigned int CellRange::size() const {
+unsigned int CellRange::size() const noexcept {
 	return (to.column-from.column+1)*(to.row-from.row+1);
 }

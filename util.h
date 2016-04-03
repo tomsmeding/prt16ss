@@ -6,12 +6,12 @@
 
 using namespace std;
 
-//trims whitespace on both sides
-string trim(const string &s);
+/*
+Some utility functions
+*/
 
-//trim whitespace on one side
-string trimleft(const string &s);
-string trimright(const string &s);
+//trim whitespace from the right
+string trimright(const string &s) noexcept;
 
 //binary IO for streams
 void writeUInt32LE(ostream &os,uint32_t v);

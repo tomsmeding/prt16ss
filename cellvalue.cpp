@@ -7,9 +7,9 @@
 
 using namespace std;
 
-CellValue::~CellValue(){}
+CellValue::~CellValue() noexcept {}
 
-CellValue* CellValue::cellValueFromString(string s){
+CellValue* CellValue::cellValueFromString(string s) noexcept {
 	Maybe<int> intval=convertstring<int>(s);
 	if(intval.isJust()){
 		return new CellValueBasic<int>(intval.fromJust());
@@ -31,33 +31,33 @@ CellValue* CellValue::cellValueFromString(string s){
 
 
 template <typename T>
-string CellValueBasic<T>::getDisplayString() const {
+string CellValueBasic<T>::getDisplayString() const noexcept {
 	return to_string(value);
 }
 
 template <>
-string CellValueBasic<string>::getDisplayString() const {
+string CellValueBasic<string>::getDisplayString() const noexcept {
 	return value;
 }
 
 template <typename T>
-string CellValueBasic<T>::getEditString() const {
+string CellValueBasic<T>::getEditString() const noexcept {
 	return getDisplayString();
 }
 
 template <typename T>
-bool CellValueBasic<T>::update(const CellArray &){
+bool CellValueBasic<T>::update(const CellArray &) noexcept {
 	return false;
 }
 
 template <typename T>
-vector<CellAddress> CellValueBasic<T>::getDependencies() const {
+vector<CellAddress> CellValueBasic<T>::getDependencies() const noexcept {
 	return vector<CellAddress>();
 }
 
 
 
-Either<string,CellValueFormula*> CellValueFormula::parseAndCreateFormula(string s){
+Either<string,CellValueFormula*> CellValueFormula::parseAndCreateFormula(string s) noexcept {
 	Either<string,Formula*> mparsed=Formula::parse(s.substr(1));
 	if(mparsed.isLeft())return mparsed.fromLeft();
 	CellValueFormula *cv=new CellValueFormula;
@@ -66,40 +66,40 @@ Either<string,CellValueFormula*> CellValueFormula::parseAndCreateFormula(string 
 	return cv;
 }
 
-string CellValueFormula::getDisplayString() const {
+string CellValueFormula::getDisplayString() const noexcept {
 	return dispString;
 }
 
-string CellValueFormula::getEditString() const {
+string CellValueFormula::getEditString() const noexcept {
 	return editString;
 }
 
-bool CellValueFormula::update(const CellArray &cells){
+bool CellValueFormula::update(const CellArray &cells) noexcept {
 	dispString=parsed->evaluate(cells);
 	return false;
 }
 
-vector<CellAddress> CellValueFormula::getDependencies() const {
+vector<CellAddress> CellValueFormula::getDependencies() const noexcept {
 	return parsed->getDependencies();
 }
 
 
 
-CellValueError::CellValueError(const string &errString,const string &editString)
+CellValueError::CellValueError(const string &errString,const string &editString) noexcept
 	:errString(errString),editString(editString){}
 
-string CellValueError::getDisplayString() const {
+string CellValueError::getDisplayString() const noexcept {
 	return "ERR:"+errString;
 }
 
-string CellValueError::getEditString() const {
+string CellValueError::getEditString() const noexcept {
 	return editString;
 }
 
-bool CellValueError::update(const CellArray &){
+bool CellValueError::update(const CellArray &) noexcept {
 	return true;
 }
 
-vector<CellAddress> CellValueError::getDependencies() const {
+vector<CellAddress> CellValueError::getDependencies() const noexcept {
 	return vector<CellAddress>();
 }

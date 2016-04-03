@@ -1,9 +1,11 @@
 #include "conversion.h"
+#include "util.h"
+#include <stdexcept>
 
 using namespace std;
 
 template <>
-Maybe<int> convertstring<int>(string s){
+Maybe<int> convertstring<int>(string s) noexcept {
 	s=trimright(s);
 	size_t endpos;
 	int intval;
@@ -19,7 +21,7 @@ Maybe<int> convertstring<int>(string s){
 }
 
 template <>
-Maybe<double> convertstring<double>(string s){
+Maybe<double> convertstring<double>(string s) noexcept {
 	s=trimright(s);
 	size_t endpos;
 	double doubleval;
@@ -35,6 +37,6 @@ Maybe<double> convertstring<double>(string s){
 }
 
 template <>
-Maybe<string> convertstring<string>(string s){
+Maybe<string> convertstring<string>(string s) noexcept {
 	return s;
 }

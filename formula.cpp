@@ -10,19 +10,19 @@
 
 using namespace std;
 
-Formula::ASTNode::ASTNode(astnodetype_t type,double numval)
+Formula::ASTNode::ASTNode(astnodetype_t type,double numval) noexcept
 	:type(type),numval(numval){}
 
-Formula::ASTNode::ASTNode(astnodetype_t type,string strval)
+Formula::ASTNode::ASTNode(astnodetype_t type,string strval) noexcept
 	:type(type),strval(strval){}
 
-Formula::ASTNode::ASTNode(astnodetype_t type,CellAddress addrval)
+Formula::ASTNode::ASTNode(astnodetype_t type,CellAddress addrval) noexcept
 	:type(type),addrval(addrval){}
 
-Formula::ASTNode::ASTNode(astnodetype_t type,CellRange rangeval)
+Formula::ASTNode::ASTNode(astnodetype_t type,CellRange rangeval) noexcept
 	:type(type),rangeval(rangeval){}
 
-Formula::ASTNode::~ASTNode(){
+Formula::ASTNode::~ASTNode() noexcept {
 	for(ASTNode *node : children){
 		delete node;
 	}
@@ -44,18 +44,19 @@ public:
 	tokentype_t type;
 	string value;
 
-	Token(tokentype_t type);
-	Token(tokentype_t type,string value);
+	Token(tokentype_t type) noexcept;
+	Token(tokentype_t type,string value) noexcept;
 };
 
-Formula::Token::Token(tokentype_t type)
+Formula::Token::Token(tokentype_t type) noexcept
 	:type(type){}
 
-Formula::Token::Token(tokentype_t type,string value)
+Formula::Token::Token(tokentype_t type,string value) noexcept
 	:type(type),value(value){}
 
 
 
+//The sopreadsheet formula functions
 const unordered_map<string,function<double(const CellArray&,CellRange)>> functionmap={
 	{"SUM",[](const CellArray &cells,CellRange range) -> double {
 		double res=0;
@@ -88,7 +89,8 @@ const unordered_map<string,function<double(const CellArray&,CellRange)>> functio
 
 
 //assumes that the char under the cursor is an uppercase character
-Maybe<Formula::Token> Formula::tryTokeniseNameAddressRange(const string &formula,int &cursor){
+Maybe<Formula::Token> Formula::tryTokeniseNameAddressRange(const string &formula,
+                                                           int &cursor) noexcept {
 	int len=formula.size();
 	int start=cursor;
 	for(cursor++;cursor<len;cursor++){ //first letters
@@ -119,7 +121,7 @@ Maybe<Formula::Token> Formula::tryTokeniseNameAddressRange(const string &formula
 }
 
 //either returns error message or the list of parsed tokens
-Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &formula){
+Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &formula) noexcept {
 	int i,len=formula.size();
 	vector<Token> tokens;
 	bool prevWasOperator=true;
@@ -198,7 +200,11 @@ unordered_map<string,bool> leftassocmap={
 	{"^",false}
 };
 
-Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &tokens){
+//This uses a modified Dijkstra's Shunting Yard algorithm to parse the expression,
+//given a list of tokens. Instead of building a postfix representation, it
+//immediately constructs the parse tree from the postfix, while it is being
+//generated.
+Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &tokens) noexcept {
 	vector<ASTNode*> nodestack;
 	vector<string> opstack;
 	ASTNode *node;
@@ -211,13 +217,18 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 				nodestack.push_back(new ASTNode(AN_STRING,tokens[i].value));
 				break;
 			case TT_NUMBER:
-				nodestack.push_back(new ASTNode(AN_NUMBER,strtod(tokens[i].value.data(),nullptr)));
+				nodestack.push_back(new ASTNode(
+					AN_NUMBER,
+					strtod(tokens[i].value.data(),nullptr)
+				));
 				break;
 			case TT_ADDRESS:
-				nodestack.push_back(new ASTNode(AN_ADDRESS,CellAddress::fromRepresentation(tokens[i].value).fromJust()));
+				nodestack.push_back(new ASTNode(
+					AN_ADDRESS,
+					CellAddress::fromRepresentation(tokens[i].value).fromJust()
+				));
 				break;
 			case TT_RANGE:
-				//nodestack.push_back(new ASTNode(AN_RANGE,CellRange::fromRepresentation(tokens[i].value).fromJust()));
 				for(ASTNode *node : nodestack)delete node;
 				return string("Range outside of function call");
 			case TT_NAME:
@@ -236,9 +247,15 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 				}
 				node=new ASTNode(AN_FUNCTION,tokens[i].value);
 				if(tokens[i+2].type==TT_ADDRESS){
-					node->children.push_back(new ASTNode(AN_ADDRESS,CellAddress::fromRepresentation(tokens[i+2].value).fromJust()));
+					node->children.push_back(new ASTNode(
+						AN_ADDRESS,
+						CellAddress::fromRepresentation(tokens[i+2].value).fromJust()
+					));
 				} else {
-					node->children.push_back(new ASTNode(AN_RANGE,CellRange::fromRepresentation(tokens[i+2].value).fromJust()));
+					node->children.push_back(new ASTNode(
+						AN_RANGE,
+						CellRange::fromRepresentation(tokens[i+2].value).fromJust()
+					));
 				}
 				nodestack.push_back(node);
 				i+=3;
@@ -256,7 +273,8 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 						if(otherprec>prec||(leftassoc&&otherprec==prec)){
 							if(nodestack.size()<2){
 								for(ASTNode *node : nodestack)delete node;
-								return "Not enough arguments to operator "+opstack.back()+"?";
+								return "Not enough arguments to operator "+
+								       opstack.back()+"?";
 							}
 							node=new ASTNode(AN_OPERATOR,opstack.back());
 							node->children.push_back(nodestack[nodestack.size()-2]);
@@ -272,7 +290,8 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 							for(ASTNode *node : nodestack)delete node;
 							return string("Excess closing parenthesis");
 						}
-						//because of their precedence, we can now assume opstack.back()=="("
+						//because of their precedence, we can now assume
+						//that opstack.back()=="("
 						opstack.pop_back();
 					} else {
 						opstack.push_back(tokens[i].value);
@@ -299,14 +318,14 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 
 
 
-Formula::Formula(ASTNode *root)
+Formula::Formula(ASTNode *root) noexcept
 	:root(root){}
 
-Formula::~Formula(){
+Formula::~Formula() noexcept {
 	delete root;
 }
 
-Either<string,Formula*> Formula::parse(const string &s){
+Either<string,Formula*> Formula::parse(const string &s) noexcept {
 	Either<string,vector<Token>> mtokens=tokeniseFormula(s);
 	if(mtokens.isLeft())return mtokens.fromLeft();
 	Either<string,ASTNode*> mtree=parseExpression(mtokens.fromRight());
@@ -314,7 +333,7 @@ Either<string,Formula*> Formula::parse(const string &s){
 	return new Formula(mtree.fromRight());
 }
 
-void Formula::collectDependencies(ASTNode *node,vector<CellAddress> &deps) const {
+void Formula::collectDependencies(ASTNode *node,vector<CellAddress> &deps) const noexcept {
 	unsigned int x,y;
 	unsigned int fromx,fromy,tox,toy;
 	switch(node->type){
@@ -344,18 +363,19 @@ void Formula::collectDependencies(ASTNode *node,vector<CellAddress> &deps) const
 	}
 }
 
-vector<CellAddress> Formula::getDependencies() const {
+vector<CellAddress> Formula::getDependencies() const noexcept {
 	vector<CellAddress> deps;
 	collectDependencies(root,deps);
 	return deps;
 }
 
-double modulo(double a,double b){
+double modulo(double a,double b) noexcept {
 	b=abs(b);
 	return a<0?a+floor(-a/b)*b:a-floor(a/b)*b;
 }
 
-Either<double,string> Formula::evaluateSubtree(ASTNode *node,const CellArray &cells) const {
+Either<double,string> Formula::evaluateSubtree(ASTNode *node,
+                                               const CellArray &cells) const noexcept {
 	switch(node->type){
 		case AN_STRING:
 			return node->strval;
@@ -372,15 +392,18 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,const CellArray &ce
 			return string("?range?");
 		case AN_FUNCTION:
 			if(node->children.size()!=1||
-			   (node->children[0]->type!=AN_ADDRESS&&node->children[0]->type!=AN_RANGE)){
-				//should not happen, since the parser enforces the function(addr/range) structure
+			   (node->children[0]->type!=AN_ADDRESS&&
+			    node->children[0]->type!=AN_RANGE)){
+				//should not happen, since the parser enforces the
+				//function(addr/range) structure
 				return string("?functionarg?");
 			}
 			try {
 				if(node->children[0]->type==AN_ADDRESS){
 					return functionmap.at(node->strval)(
 						cells,
-						CellRange(node->children[0]->addrval,node->children[0]->addrval)
+						CellRange(node->children[0]->addrval,
+						          node->children[0]->addrval)
 					);
 				} else {
 					return functionmap.at(node->strval)(cells,node->children[0]->rangeval);
@@ -424,7 +447,7 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,const CellArray &ce
 	}
 }
 
-string Formula::evaluate(const CellArray &cells) const {
+string Formula::evaluate(const CellArray &cells) const noexcept {
 	Either<double,string> res=evaluateSubtree(root,cells);
 	if(res.isLeft()){
 		stringstream ss;

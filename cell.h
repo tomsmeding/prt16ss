@@ -11,6 +11,12 @@
 
 using namespace std;
 
+/*
+A cell in the spreadsheet; contains a CellValue (an instance from an abstract
+base class) to keep its value. Supports management of reverse dependencies, and
+serialisation.
+*/
+
 class CellValue;
 
 class Cell{
@@ -18,33 +24,38 @@ class Cell{
 	set<CellAddress> revdeps; //reverse dependencies: cells that depend on this one
 	const CellAddress address; //address of this cell in sheet
 
-	Cell(CellValue *value,CellAddress address);
+	Cell(CellValue *value,CellAddress address) noexcept;
 
 public:
-	Cell(CellAddress address);
-	Cell(string editString,CellAddress address); //doesn't update() yet!
-	~Cell();
+	Cell(CellAddress address) noexcept;
+	Cell(string editString,CellAddress address) noexcept; //doesn't update() yet!
+	~Cell() noexcept;
 
-	static Cell makeErrorCell(string errString,string editString,CellAddress address);
+	static Cell makeErrorCell(string errString,string editString,CellAddress address) noexcept;
 
-	void setError(string errString);
+	void setError(string errString) noexcept;
 
-	const set<CellAddress>& getReverseDependencies() const; //returns set of cells dependent on this cell
+	//returns set of cells dependent on this cell
+	const set<CellAddress>& getReverseDependencies() const noexcept;
 
-	bool addReverseDependency(CellAddress addr); //false indicates already present
-	void addReverseDependencies(const set<CellAddress> &addrs); //bulk version of addReverseDependency
-	bool removeReverseDependency(CellAddress addr); //false indicates not present
+	//false indicates already present
+	bool addReverseDependency(CellAddress addr) noexcept;
+	//bulk version of addReverseDependency
+	void addReverseDependencies(const set<CellAddress> &addrs) noexcept;
+	//false indicates not present
+	bool removeReverseDependency(CellAddress addr) noexcept;
 
 	//doesn't update the cell's display string, do that with update()
-	void setEditString(string s);
+	void setEditString(string s) noexcept;
 
-	string getDisplayString() const;
-	string getEditString() const;
+	string getDisplayString() const noexcept;
+	string getEditString() const noexcept;
 
 	//updates the cell, using possibly changed values of its dependencies
-	void update(const CellArray &cells);
+	void update(const CellArray &cells) noexcept;
 
-	vector<CellAddress> getDependencies() const; //returns list of dependencies for this cell
+	//returns list of dependencies for this cell
+	vector<CellAddress> getDependencies() const noexcept;
 
 	void serialise(ostream &os) const; //serialises the cell to the stream
 	void deserialise(istream &in); //deserialises the cell from the stream

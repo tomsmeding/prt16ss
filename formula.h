@@ -8,6 +8,11 @@
 
 using namespace std;
 
+/*
+A wrapper for a formula, with useful functions for parsing and evaluating.
+Used extensively (obviously) by CellValueFormula.
+*/
+
 class CellArray;
 
 class Formula{
@@ -29,12 +34,12 @@ class Formula{
 		const CellRange rangeval=CellRange(CellAddress(0,0),CellAddress(0,0));
 		vector<ASTNode*> children;
 
-		ASTNode(astnodetype_t type,double numval);
-		ASTNode(astnodetype_t type,string strval);
-		ASTNode(astnodetype_t type,CellAddress addrval);
-		ASTNode(astnodetype_t type,CellRange rangeval);
+		ASTNode(astnodetype_t type,double numval) noexcept;
+		ASTNode(astnodetype_t type,string strval) noexcept;
+		ASTNode(astnodetype_t type,CellAddress addrval) noexcept;
+		ASTNode(astnodetype_t type,CellRange rangeval) noexcept;
 
-		~ASTNode();
+		~ASTNode() noexcept;
 	};
 
 	class Token;
@@ -42,21 +47,24 @@ class Formula{
 
 	ASTNode *root;
 
-	Formula(ASTNode *root);
+	Formula(ASTNode *root) noexcept;
 
-	static Maybe<Token> tryTokeniseNameAddressRange(const string &formula,int &cursor);
-	static Either<string,vector<Token>> tokeniseFormula(const string &formula);
-	static Either<string,ASTNode*> parseExpression(const vector<Token> &tokens);
+	//Parsing and tokenisation sub functions
+	static Maybe<Token> tryTokeniseNameAddressRange(const string &formula,int &cursor) noexcept;
+	static Either<string,vector<Token>> tokeniseFormula(const string &formula) noexcept;
+	static Either<string,ASTNode*> parseExpression(const vector<Token> &tokens) noexcept;
 
-	void collectDependencies(ASTNode *node,vector<CellAddress> &deps) const;
-	Either<double,string> evaluateSubtree(ASTNode *node,const CellArray &cells) const;
+	//evaluation and dep getting sub functions
+	void collectDependencies(ASTNode *node,vector<CellAddress> &deps) const noexcept;
+	Either<double,string> evaluateSubtree(ASTNode *node,const CellArray &cells) const noexcept;
 
 public:
-	~Formula();
+	~Formula() noexcept;
 
-	static Either<string,Formula*> parse(const string &s);
+	//Maybe construct a Formla
+	static Either<string,Formula*> parse(const string &s) noexcept;
 
-	vector<CellAddress> getDependencies() const;
+	vector<CellAddress> getDependencies() const noexcept;
 
-	string evaluate(const CellArray &cells) const;
+	string evaluate(const CellArray &cells) const noexcept;
 };

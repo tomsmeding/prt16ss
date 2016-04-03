@@ -8,6 +8,19 @@
 
 using namespace std;
 
+/*
+The main spreadsheet include file, for use in the other components.
+This defines CellArray, the container for the actual array of cells in use in
+Spreadsheet, and Spreadsheet itself.
+
+CellArray is a 2D store of Cell's. Cell access is via CellAddress'es; a
+const_iterator type is provided via range() using a CellRange.
+
+Spreadsheet is a high-level spreadsheet object, usable without direct knowledge
+of the actual implementation of the values; notably including formulas, which
+are transparently handled.
+*/
+
 class Cell;
 
 class CellArrayIt;
@@ -23,25 +36,23 @@ public:
 		CellRange range;
 
 	public:
-		RangeWrapper(const CellArray &cells,CellRange range);
+		RangeWrapper(const CellArray &cells,CellRange range) noexcept;
 
-		CellArray::const_iterator begin() const;
-		CellArray::const_iterator end() const;
+		CellArray::const_iterator begin() const noexcept;
+		CellArray::const_iterator end() const noexcept;
 	};
 
-	unsigned int width() const;
-	unsigned int height() const;
+	unsigned int width() const noexcept;
+	unsigned int height() const noexcept;
 
-	Cell& operator[](CellAddress addr);
-	const Cell& operator[](CellAddress addr) const;
-	Cell& at(CellAddress addr);
+	Cell& operator[](CellAddress addr) noexcept; //unsafe element access
+	const Cell& operator[](CellAddress addr) const noexcept;
+	Cell& at(CellAddress addr); //throws on out-of-bounds using vector::at
 
-	void ensureSize(unsigned int w,unsigned int h);
-	void resize(unsigned int w,unsigned int h);
+	void ensureSize(unsigned int w,unsigned int h); //only resizes up if needed
+	void resize(unsigned int w,unsigned int h); //can forcibly resize down
 
-	/*CellArray::iterator begin();
-	CellArray::iterator end();*/
-	CellArray::RangeWrapper range(CellRange r) const;
+	RangeWrapper range(CellRange r) const noexcept; //iterator provider
 };
 
 class CellArrayIt : public iterator<input_iterator_tag,Cell*>{
@@ -49,17 +60,17 @@ class CellArrayIt : public iterator<input_iterator_tag,Cell*>{
 	CellAddress begin,end,cursor;
 	bool isend;
 
-	CellArrayIt(); //end constructor
+	CellArrayIt() noexcept; //end constructor
 public:
-	CellArrayIt(const CellArray &cells,CellRange r);
+	CellArrayIt(const CellArray &cells,CellRange r) noexcept;
 
-	static CellArrayIt endit();
+	static CellArrayIt endit() noexcept; //returns the special end iterator
 
-	bool operator==(const CellArrayIt &other) const;
-	bool operator!=(const CellArrayIt &other) const;
+	bool operator==(const CellArrayIt &other) const noexcept;
+	bool operator!=(const CellArrayIt &other) const noexcept;
 	const Cell& operator*() const;
 	const Cell* operator->() const;
-	CellArrayIt& operator++();
+	CellArrayIt& operator++() noexcept;
 };
 
 class Spreadsheet{
@@ -69,20 +80,24 @@ class Spreadsheet{
 	//key is cell that is depended on by the value
 	unordered_map<CellAddress,CellAddress> revdepsOutside;
 
-	unsigned int getWidth() const; //return dimensions of `cells`
-	unsigned int getHeight() const;
-	bool inBounds(CellAddress addr) const;
+	unsigned int getWidth() const noexcept; //return dimensions of `cells`
+	unsigned int getHeight() const noexcept;
+	bool inBounds(CellAddress addr) const noexcept; //whether addr is in bounds
 
-	//returns all cells updated, including given cell (only updated if updatefirst);
-	//if circular references and circularrefs!=nullptr, sets that to true, else to false
-	//if circularrefs==nullptr, ignores a circular reference and continues updating the rest
+	//returns all cells updated, including given cell (only updated if
+	//updatefirst)
+	//if circular references and circularrefs!=nullptr, sets that to true, else
+	//to false;  if circularrefs==nullptr, ignores a circular reference and
+	//continues updating the rest
 	//Assumes addr in bounds!
-	set<CellAddress> recursiveUpdate(CellAddress addr,bool *circularrefs,bool updatefirst);
+	set<CellAddress> recursiveUpdate(CellAddress addr,
+		                             bool *circularrefs,
+		                             bool updatefirst) noexcept;
 
-	//checks whether the chain of dependencies starting from addr contains a cycle
+	//checks whether the dep chain starting from addr contains a cycle
 	//the second method should not be used directly; the first calls the second
-	bool checkCircularDependencies(CellAddress addr);
-	bool checkCircularDependencies(CellAddress addr,set<CellAddress> &seen);
+	bool checkCircularDependencies(CellAddress addr) noexcept;
+	bool checkCircularDependencies(CellAddress addr,set<CellAddress> &seen) noexcept;
 
 public:
 	Spreadsheet(unsigned int width,unsigned int height);
@@ -92,15 +107,16 @@ public:
 	bool saveToDisk(string fname) const;
 	bool loadFromDisk(string fname);
 
-	Maybe<string> getCellDisplayString(CellAddress addr); //gets string for that cell for display in the sheet;
-	                                                      //(Nothing if out of bounds)
-	Maybe<string> getCellEditString(CellAddress addr); //gets string containing the raw cell data (for editing);
-	                                                   //(Nothing if out of bounds)
+	//gets display string for that cell (Nothing if out of bounds)
+	Maybe<string> getCellDisplayString(CellAddress addr) noexcept;
+	//gets the raw cell data (for editing) (Nothing if out of bounds)
+	Maybe<string> getCellEditString(CellAddress addr) noexcept;
 
-	Maybe<set<CellAddress>> changeCellValue(CellAddress addr,string repr);
-	  //changes the raw cell data of a cell, returns list of cells changed in sheet (includes
-	  //edited cell) (Nothing if out of bounds)
+	//changes the raw cell data of a cell, returns list of cells changed in
+	//sheet (includes edited cell); (Nothing if out of bounds)
+	Maybe<set<CellAddress>> changeCellValue(CellAddress addr,string repr) noexcept;
 
-	void ensureSheetSize(unsigned int width,unsigned int height); //ensures that the sheet is at least the given size;
-	                                                              //useful for safe querying
+	//ensures that the sheet is at least the given size;
+	//useful for safe querying
+	void ensureSheetSize(unsigned int width,unsigned int height);
 };

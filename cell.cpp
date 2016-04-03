@@ -2,8 +2,6 @@
 #include "cell.h"
 #include "cellvalue.h"
 #include "celladdress.h"
-#include "conversion.h"
-#include "maybe.h"
 #include "util.h"
 #include <vector>
 #include <string>
@@ -12,24 +10,24 @@
 using namespace std;
 
 
-Cell::Cell(CellValue *value,CellAddress address)
+Cell::Cell(CellValue *value,CellAddress address) noexcept
 	:value(value),address(address){}
 
-Cell::Cell(CellAddress address)
+Cell::Cell(CellAddress address) noexcept
 	:value(new CellValueBasic<string>("")),address(address){}
 
-Cell::Cell(string editString,CellAddress address)
+Cell::Cell(string editString,CellAddress address) noexcept
 	:value(nullptr),address(address){
 	setEditString(editString);
 }
 
-Cell::~Cell(){}
+Cell::~Cell() noexcept {}
 
-Cell Cell::makeErrorCell(string errString,string editString,CellAddress address){
+Cell Cell::makeErrorCell(string errString,string editString,CellAddress address) noexcept {
 	return Cell(new CellValueError(errString,editString),address);
 }
 
-void Cell::setError(string errString){
+void Cell::setError(string errString) noexcept {
 	CellValue *newvalue;
 	if(value){
 		newvalue=new CellValueError(errString,value->getEditString());
@@ -40,41 +38,41 @@ void Cell::setError(string errString){
 	value=newvalue;
 }
 
-const set<CellAddress>& Cell::getReverseDependencies() const {
+const set<CellAddress>& Cell::getReverseDependencies() const noexcept {
 	return revdeps;
 }
 
-bool Cell::addReverseDependency(CellAddress addr){
+bool Cell::addReverseDependency(CellAddress addr) noexcept {
 	return revdeps.insert(addr).second;
 }
 
-void Cell::addReverseDependencies(const set<CellAddress> &addrs){
+void Cell::addReverseDependencies(const set<CellAddress> &addrs) noexcept {
 	for(const CellAddress &addr : addrs){
 		revdeps.insert(addr);
 	}
 }
 
-bool Cell::removeReverseDependency(CellAddress addr){
+bool Cell::removeReverseDependency(CellAddress addr) noexcept {
 	auto it=revdeps.find(addr);
 	if(it==revdeps.end())return false;
 	revdeps.erase(it);
 	return true;
 }
 
-void Cell::setEditString(string s){
+void Cell::setEditString(string s) noexcept {
 	if(value)delete value;
 	value=CellValue::cellValueFromString(s);
 }
 
-string Cell::getDisplayString() const {
+string Cell::getDisplayString() const noexcept {
 	return value->getDisplayString();
 }
 
-string Cell::getEditString() const {
+string Cell::getEditString() const noexcept {
 	return value->getEditString();
 }
 
-void Cell::update(const CellArray &cells){
+void Cell::update(const CellArray &cells) noexcept {
 	if(value->update(cells)){
 		CellValue *newvalue=CellValue::cellValueFromString(value->getEditString());
 		delete value;
@@ -83,7 +81,7 @@ void Cell::update(const CellArray &cells){
 	}
 }
 
-vector<CellAddress> Cell::getDependencies() const {
+vector<CellAddress> Cell::getDependencies() const noexcept {
 	return value->getDependencies();
 }
 
@@ -107,19 +105,15 @@ void Cell::deserialise(istream &in){
 	if(in.fail())return; //random allocation prevention
 	revdeps.clear();
 	unsigned int i;
-	//cerr<<"Cell::des("<<address.toRepresentation()<<"): revdeps:";
 	for(i=0;i<nrevdeps;i++){
 		CellAddress ca=CellAddress::deserialise(in);
-		//cerr<<' '<<ca.toRepresentation();
 		revdeps.insert(ca);
 		// revdeps.insert(CellAddress::deserialise(in));
 	}
-	//cerr<<"; edit: ";
 	unsigned int len=readUInt32LE(in);
 	if(in.fail())return;
 	string s;
 	s.resize(len);
 	in.read(&s.front(),len);
-	//cerr<<s<<endl;
 	setEditString(s);
 }
