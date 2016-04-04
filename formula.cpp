@@ -1,5 +1,5 @@
-#include "formula.h"
 #include "cell.h"
+#include "formula.h"
 #include <sstream>
 #include <unordered_map>
 #include <functional>
@@ -74,7 +74,7 @@ const unordered_map<string,function<double(const CellArray&,CellRange)>> functio
 	}},
 	{"AVG",[](const CellArray &cells,CellRange range) -> double {
 		double sum=functionmap.at("SUM")(cells,range);
-		if(isnan(sum))return sum;
+		if(std::isnan(sum))return sum;
 		return sum/range.size();
 	}},
 	{"COUNT",[](const CellArray &cells,CellRange range) -> double {

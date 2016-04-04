@@ -1,5 +1,5 @@
-#include "spreadsheet.h"
 #include "cell.h"
+#include "spreadsheet.h"
 #include "cellvalue.h"
 #include "celladdress.h"
 #include "util.h"

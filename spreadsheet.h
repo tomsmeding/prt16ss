@@ -120,3 +120,5 @@ public:
 	//useful for safe querying
 	void ensureSheetSize(unsigned int width,unsigned int height);
 };
+
+#include "cell.h"

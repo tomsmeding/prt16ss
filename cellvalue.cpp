@@ -1,8 +1,8 @@
+#include "cell.h"
 #include "cellvalue.h"
 #include "celladdress.h"
 #include "spreadsheet.h"
 #include "conversion.h"
-#include "cell.h"
 #include "formula.h"
 
 using namespace std;
