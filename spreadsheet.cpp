@@ -160,9 +160,12 @@ bool Spreadsheet::saveToDisk(string fname) const {
 	writeUInt32LE(out,w);
 	writeUInt32LE(out,h);
 	writeUInt32LE(out,revdepsOutside.size());
-	for(const pair<CellAddress,CellAddress> &p : revdepsOutside){
+	for(const pair<CellAddress,set<CellAddress>> &p : revdepsOutside){
 		p.first.serialise(out);
-		p.second.serialise(out);
+		writeUInt32LE(out,p.second.size());
+		for(const CellAddress &addr : p.second){
+			addr.serialise(out);
+		}
 	}
 	string text;
 	for(y=0;y<h;y++)for(x=0;x<w;x++){
@@ -189,8 +192,13 @@ bool Spreadsheet::loadFromDisk(string fname){
 	revdepsOutside.reserve(nrdo);
 	for(x=0;x<nrdo;x++){
 		CellAddress a=CellAddress::deserialise(in);
-		CellAddress b=CellAddress::deserialise(in);
-		revdepsOutside.emplace(a,b);
+		int n=readUInt32LE(in);
+		if(in.fail())return false;
+		set<CellAddress> targets;
+		for(int i=0;i<n;i++){
+			targets.insert(CellAddress::deserialise(in));
+		}
+		revdepsOutside.emplace(a,targets);
 	}
 	string text;
 	for(y=0;y<h;y++)for(x=0;x<w;x++){
@@ -268,7 +276,17 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 	if(!inBounds(addr))return Nothing();
 	Cell &cell=cells[addr];
 	for(const CellAddress &depaddr : cell.getDependencies()){
-		cells[depaddr].removeReverseDependency(addr);
+		if(inBounds(depaddr)){
+			cells[depaddr].removeReverseDependency(addr);
+		} else {
+			auto it=revdepsOutside.find(depaddr);
+			if(it!=revdepsOutside.end()){
+				auto vit=it->second.find(addr);
+				if(vit!=it->second.end()){
+					it->second.erase(vit);
+				}
+			}
+		}
 	}
 	cell.setEditString(repr);
 	const vector<CellAddress> newcelldeps=cell.getDependencies();
@@ -282,7 +300,12 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 		if(inBounds(depaddr)){
 			cells[depaddr].addReverseDependency(addr);
 		} else {
-			revdepsOutside.emplace(depaddr,addr);
+			auto it=revdepsOutside.find(depaddr);
+			if(it==revdepsOutside.end()){
+				revdepsOutside.emplace(depaddr,set<CellAddress>{addr});
+			} else {
+				it->second.insert(addr);
+			}
 		}
 	}
 	bool circularrefs;
@@ -296,9 +319,9 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){
 	cells.ensureSize(width,height);
-	for(const pair<CellAddress,CellAddress> &p : revdepsOutside){
+	for(const pair<CellAddress,set<CellAddress>> &p : revdepsOutside){
 		if(!inBounds(p.first))continue;
-		cells[p.first].addReverseDependency(p.second);
+		cells[p.first].addReverseDependencies(p.second);
 		revdepsOutside.erase(p.first); //possible since c++14
 	}
 }

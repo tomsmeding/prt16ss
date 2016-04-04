@@ -78,7 +78,7 @@ class Spreadsheet{
 
 	//reverse dependencies outside of allocated area
 	//key is cell that is depended on by the value
-	unordered_map<CellAddress,CellAddress> revdepsOutside;
+	unordered_map<CellAddress,set<CellAddress>> revdepsOutside;
 
 	unsigned int getWidth() const noexcept; //return dimensions of `cells`
 	unsigned int getHeight() const noexcept;
