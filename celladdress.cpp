@@ -29,21 +29,7 @@ Maybe<CellAddress> CellAddress::fromRepresentation(string repr) noexcept {
 }
 
 string CellAddress::toRepresentation() const noexcept {
-	string rev;
-	unsigned int r=column+1;
-	while(r){
-		switch(r%26){
-			case 0:
-				rev+='Z';
-				r=(r-26)/26;
-				break;
-			default:
-				rev+=(char)('A'+r%26-1);
-				r/=26;
-				break;
-		}
-	}
-	return string(rev.crbegin(),rev.crend())+to_string(row+1);
+	return columnLabel(column)+to_string(row+1);
 }
 
 CellAddress CellAddress::deserialise(istream &in){

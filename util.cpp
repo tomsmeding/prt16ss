@@ -9,6 +9,10 @@ string trimright(const string &s) noexcept {
 	return s.substr(0,right+1);
 }
 
+string centreString(const string &s,int wid) noexcept {
+	return string((wid-s.size())/2,' ')+s+string((wid-s.size()+1)/2,' ');
+}
+
 void writeUInt32LE(ostream &os,uint32_t v){
 	unsigned char buf[4];
 	int i;
@@ -27,4 +31,22 @@ uint32_t readUInt32LE(istream &is){
 		v=(v<<8)|buf[i];
 	}
 	return v;
+}
+
+string columnLabel(int col) noexcept {
+	string rev;
+	col++;
+	while(col){
+		switch(col%26){
+			case 0:
+				rev+='Z';
+				col=(col-26)/26;
+				break;
+			default:
+				rev+=(char)('A'+col%26-1);
+				col/=26;
+				break;
+		}
+	}
+	return string(rev.crbegin(),rev.crend());
 }

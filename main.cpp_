@@ -1,0 +1,14 @@
+//#include "view.h"
+#include <ncurses.h>
+#include <iostream>
+#include <unistd.h>
+#include "view.h"
+
+using namespace std;
+
+int main(){
+	Spreadsheet sheet(9,23);
+	SheetView view(sheet);
+	view.getChar();
+	return 0;
+}
