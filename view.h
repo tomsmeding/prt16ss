@@ -43,4 +43,6 @@ private:
 	void redrawCell(CellAddress addr,bool dorefresh);
 	int rowToY(int row) const;
 	int columnToX(int column) const;
+
+	void drawBoxAround(int x,int y,int w,int h);
 };
