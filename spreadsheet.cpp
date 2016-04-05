@@ -319,9 +319,13 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){
 	cells.ensureSize(width,height);
+	vector<CellAddress> toerase;
 	for(const pair<CellAddress,set<CellAddress>> &p : revdepsOutside){
 		if(!inBounds(p.first))continue;
 		cells[p.first].addReverseDependencies(p.second);
-		revdepsOutside.erase(p.first); //possible since c++14
+		toerase.push_back(p.first);
+	}
+	for(const CellAddress &addr : toerase){
+		revdepsOutside.erase(revdepsOutside.find(addr));
 	}
 }
