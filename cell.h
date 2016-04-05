@@ -53,6 +53,9 @@ public:
 	string getDisplayString() const noexcept;
 	string getEditString() const noexcept;
 
+	//returns whether the cell contains an error value
+	bool isErrorValue() const noexcept;
+
 	//updates the cell, using possibly changed values of its dependencies
 	void update(const CellArray &cells) noexcept;
 

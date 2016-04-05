@@ -78,7 +78,10 @@ string CellValueFormula::getEditString() const noexcept {
 }
 
 bool CellValueFormula::update(const CellArray &cells) noexcept {
-	dispString=parsed->evaluate(cells);
+	Maybe<string> res=parsed->evaluate(cells);
+	if(res.isNothing()){
+		dispString="FERR:Error in formula dependencies";
+	} else dispString=res.fromJust();
 	return false;
 }
 

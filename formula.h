@@ -43,6 +43,7 @@ class Formula{
 	};
 
 	class Token;
+	class Partialresult;
 
 
 	ASTNode *root;
@@ -56,7 +57,7 @@ class Formula{
 
 	//evaluation and dep getting sub functions
 	void collectDependencies(ASTNode *node,vector<CellAddress> &deps) const noexcept;
-	Either<double,string> evaluateSubtree(ASTNode *node,const CellArray &cells) const noexcept;
+	Partialresult evaluateSubtree(ASTNode *node,const CellArray &cells) const noexcept;
 
 public:
 	~Formula() noexcept;
@@ -66,5 +67,6 @@ public:
 
 	vector<CellAddress> getDependencies() const noexcept;
 
-	string evaluate(const CellArray &cells) const noexcept;
+	//returns Nothing if an error in dependencies
+	Maybe<string> evaluate(const CellArray &cells) const noexcept;
 };

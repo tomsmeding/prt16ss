@@ -11,7 +11,7 @@ BIN = main
 obj_files = $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 
-.PHONY: all clean remake test
+.PHONY: all clean remake test switch
 
 all: $(BIN)
 
@@ -22,6 +22,10 @@ remake: clean all
 
 test: all
 	python3 modeltest.py
+
+switch:
+	test -e main.cpp && mv main.cpp main.cpp_ || mv main.cpp_ main.cpp
+	test -e modeltestmain.cpp && mv modeltestmain.cpp modeltestmain.cpp_ || mv modeltestmain.cpp_ modeltestmain.cpp
 
 
 $(BIN): $(obj_files)

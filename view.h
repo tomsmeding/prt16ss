@@ -33,8 +33,8 @@ public:
 	Maybe<string> askStringOfUser(string prompt,string prefilled);
 
 	void displayStatusString(string s); //displays s in the status bar
+
 private:
-	WINDOW *win;
 	Spreadsheet &sheet;
 	CellAddress scroll=CellAddress(0,0);
 	CellAddress cursor=CellAddress(0,0);

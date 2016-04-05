@@ -72,6 +72,11 @@ string Cell::getEditString() const noexcept {
 	return value->getEditString();
 }
 
+bool Cell::isErrorValue() const noexcept {
+	cerr<<"isErrorValue("<<address.toRepresentation()<<") = "<<(bool)dynamic_cast<CellValueError*>(value)<<endl;
+	return (bool)dynamic_cast<CellValueError*>(value);
+}
+
 void Cell::update(const CellArray &cells) noexcept {
 	if(value->update(cells)){
 		CellValue *newvalue=CellValue::cellValueFromString(value->getEditString());

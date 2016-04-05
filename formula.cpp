@@ -1,5 +1,6 @@
 #include "spreadsheet.h"
 #include "cell.h"
+#include "cellvalue.h"
 #include "formula.h"
 #include <sstream>
 #include <unordered_map>
@@ -379,8 +380,32 @@ double modulo(double a,double b) noexcept {
 	return a<0?a+floor(-a/b)*b:a-floor(a/b)*b;
 }
 
-Either<double,string> Formula::evaluateSubtree(ASTNode *node,
-                                               const CellArray &cells) const noexcept {
+class Formula::Partialresult{
+	bool errflag=false;
+	bool numflag=false;
+
+	Partialresult(){}
+
+public:
+	double numval=0;
+	string strval;
+
+	Partialresult(double numval):numflag(true),numval(numval){}
+	Partialresult(string strval):strval(strval){}
+	
+	static Partialresult errorValue(){
+		Partialresult p;
+		p.errflag=true;
+		return p;
+	}
+
+	bool isNumber(){return numflag;}
+	bool isString(){return !numflag&&!errflag;}
+	bool isError(){return errflag;}
+};
+
+Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
+                                                const CellArray &cells) const noexcept {
 	switch(node->type){
 		case AN_STRING:
 			return node->strval;
@@ -390,8 +415,13 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,
 			if(node->addrval.row>=cells.height()||
 			   node->addrval.column>=cells.width()){
 				return string(); //yet non-existent cells are empty
+			} else {
+				const Cell &cell=cells[node->addrval];
+				if(cell.isErrorValue()){
+					return Formula::Partialresult::errorValue();
+				}
+				return cell.getDisplayString();
 			}
-			return cells[node->addrval].getDisplayString();
 		case AN_RANGE:
 			//should not happen, since ranges are only parsed in function calls
 			return string("?range?");
@@ -418,7 +448,7 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,
 				return string("?function?");
 			}
 		case AN_OPERATOR:{
-			Either<double,string> arg[2]={
+			Formula::Partialresult arg[2]={
 				evaluateSubtree(node->children[0],cells),
 				evaluateSubtree(node->children[1],cells)
 			};
@@ -426,9 +456,11 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,
 			const char *startp;
 			char *endp;
 			for(int i=0;i<2;i++){
-				if(arg[i].isLeft())argd[i]=arg[i].fromLeft();
+				if(arg[i].isError()){
+					return Formula::Partialresult::errorValue();
+				} else if(arg[i].isNumber())argd[i]=arg[i].numval;
 				else {
-					const string &argstr=arg[i].fromRight();
+					const string &argstr=arg[i].strval;
 					if(argstr.size()==0)argd[i]=0;
 					else {
 						startp=argstr.data();
@@ -452,15 +484,21 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,
 	}
 }
 
-string Formula::evaluate(const CellArray &cells) const noexcept {
-	Either<double,string> res=evaluateSubtree(root,cells);
-	if(res.isLeft()){
-		double v=res.fromLeft();
-		if(std::isnan(v))return "NaN";
-		if(v==0)return "0"; //fix the -0 case
+Maybe<string> Formula::evaluate(const CellArray &cells) const noexcept {
+	Formula::Partialresult res=evaluateSubtree(root,cells);
+	cerr<<"isError: "<<res.isError()<<endl;
+	cerr<<"isNumber: "<<res.isNumber()<<endl;
+	cerr<<"isString: "<<res.isString()<<endl;
+	if(res.isError()){
+		return Nothing();
+	}
+	if(res.isNumber()){
+		double v=res.numval;
+		if(std::isnan(v))return string("NaN");
+		if(v==0)return string("0"); //fix the -0 case
 		stringstream ss;
-		ss<<res.fromLeft();
+		ss<<v;
 		return ss.str();
 	}
-	return res.fromRight();
+	return res.strval;
 }

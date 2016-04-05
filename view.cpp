@@ -7,35 +7,35 @@ SheetView::SheetView(Spreadsheet &sheet)
 	initscr();
 	start_color();
 	noecho();
-	win=newwin(LINES,COLS,0,0);
-	keypad(win, TRUE);
+	keypad(stdscr, TRUE);
 	redraw();
 }
 
 SheetView::~SheetView(){
-	delwin(win);
 	endwin();
 }
 
 void SheetView::redraw(){
 	int i,j;
+	move(0,0);
+	addstr("        ");
 	attron(A_REVERSE);
 	for(i=0;i<COLS/8-1;i++){
 		string label=centreString(columnLabel(i+scroll.column),8);
-		mvwaddstr(win,0,columnToX(i),label.data());
+		mvaddstr(0,columnToX(i),label.data());
 	}
 	for(i=0;i<LINES-2;i++){
 		string label=centreString(to_string(i+1+scroll.row),8);
-		mvwaddstr(win,rowToY(i),0,label.data());
+		mvaddstr(rowToY(i),0,label.data());
 	}
-	attron(A_NORMAL);
+	attroff(A_REVERSE);
 	for(i=0;i<COLS/8-1;i++){
 		for(j=0;j<LINES-1;j++){
 			redrawCell(CellAddress(j+scroll.row,i+scroll.column),false);
 		}
 	}
-	wrefresh(win);
-	wmove(win,rowToY(cursor.row),columnToX(cursor.column));
+	refresh();
+	move(rowToY(cursor.row),columnToX(cursor.column));
 }
 
 void SheetView::redrawCell(CellAddress addr){
@@ -49,29 +49,30 @@ void SheetView::redrawCell(CellAddress addr,bool dorefresh){
 	}
 	sheet.ensureSheetSize(addr.column+1,addr.row+1);
 	int leftx;
-	string value;
+	string dispvalue,value;
+	dispvalue=sheet.getCellDisplayString(addr).fromJust();
 	if(addr==cursor){
 		value=sheet.getCellEditString(addr).fromJust();
+		if(dispvalue.size()>8&&dispvalue!=value){
+			displayStatusString(dispvalue); //inform of full display value
+		}
 		attron(A_REVERSE);
 		leftx=min(columnToX(addr.column),COLS-1-(int)value.size());
 	} else {
 		value=sheet.getCellDisplayString(addr).fromJust();
-		if(value.size()>8){
-			//displayStatusString(value); //inform of full display value
-			value.erase(value.begin()+8,value.end());
-		}
+		if(value.size()>8)value.erase(value.begin()+8,value.end());
 		leftx=columnToX(addr.column);
 	}
 	string blankstr(max(8,(int)value.size()),' ');
-	mvwaddstr(win,rowToY(addr.row),leftx,blankstr.data());
-	mvwaddstr(win,rowToY(addr.row),leftx,value.data());
+	mvaddstr(rowToY(addr.row),leftx,blankstr.data());
+	mvaddstr(rowToY(addr.row),leftx,value.data());
 	if(addr==cursor){
 		attroff(A_REVERSE);
 		cursordispval=value;
 	}
 	if(dorefresh){
-		wrefresh(win);
-		wmove(win,rowToY(cursor.row),leftx);
+		refresh();
+		move(rowToY(cursor.row),leftx);
 	}
 }
 
@@ -82,6 +83,7 @@ void SheetView::setCursorPosition(CellAddress addr){
 	if(oldcursor.column<COLS/8-1+scroll.column-1){
 		redrawCell(CellAddress(oldcursor.row,oldcursor.column+1));
 	}
+	displayStatusString("");
 	redrawCell(cursor,true);
 }
 
@@ -89,24 +91,27 @@ Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string 
 	const int cellx=columnToX(loc.column),celly=rowToY(loc.row);
 	const int popupx=min(cellx,COLS-17);
 	drawBoxAround(popupx,celly,16,1);
+	move(celly,popupx);
+	for(int i=popupx;i<popupx+16;i++)addch(' ');
 	if(buffer.size()>16)buffer.erase(buffer.begin()+16,buffer.end());
-	mvwaddstr(win,celly,popupx,buffer.data());
+	mvaddstr(celly,popupx,buffer.data());
 	while(true){
-		int c=wgetch(win);
+		int c=getch();
 		if(c==27){ //escape
+			redraw();
 			return Nothing(); //didn't edit anything
 		} else if(c==KEY_BACKSPACE){
 			if(buffer.size()>0){
 				buffer.pop_back();
-				mvwaddch(win,celly,popupx+buffer.size(),' ');
-				wmove(win,celly,popupx+buffer.size());
+				mvaddch(celly,popupx+buffer.size(),' ');
+				move(celly,popupx+buffer.size());
 			}
 		} else if(c=='\n'){
 			break; //accepted value
 		} else if(c>=32&&c<127){
 			if(buffer.size()<16){
 				buffer+=(char)c;
-				waddch(win,(char)c);
+				addch((char)c);
 			}
 		}
 	}
@@ -114,8 +119,19 @@ Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string 
 	return buffer;
 }
 
+void SheetView::displayStatusString(string s){
+	int storey,storex;
+	getyx(stdscr,storey,storex);
+	move(LINES-1,0);
+	if((int)s.size()>=COLS)s.erase(s.begin()+COLS,s.end());
+	s.reserve(COLS);
+	for(int i=s.size();i<COLS;i++)s+=' ';
+	addstr(s.data());
+	move(storey,storex);
+}
+
 int SheetView::getChar(){
-	return wgetch(win);
+	return getch();
 }
 
 int SheetView::rowToY(int row) const {
@@ -127,16 +143,16 @@ int SheetView::columnToX(int column) const {
 }
 
 void SheetView::drawBoxAround(int x,int y,int w,int h){
-	wmove(win,y-1,x-1);
-	waddch(win,'+');
+	move(y-1,x-1);
+	addch('+');
 	string hor(w,'-');
-	waddstr(win,hor.data());
-	waddch(win,'+');
+	addstr(hor.data());
+	addch('+');
 	for(int i=y;i<y+h;i++){
-		mvwaddch(win,i,x-1,'|');
-		mvwaddch(win,i,x+w,'|');
+		mvaddch(i,x-1,'|');
+		mvaddch(i,x+w,'|');
 	}
-	mvwaddch(win,y+h,x-1,'+');
-	waddstr(win,hor.data());
-	waddch(win,'+');
+	mvaddch(y+h,x-1,'+');
+	addstr(hor.data());
+	addch('+');
 }
