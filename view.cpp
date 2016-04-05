@@ -100,7 +100,7 @@ Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string 
 		if(c==27){ //escape
 			redraw();
 			return Nothing(); //didn't edit anything
-		} else if(c==KEY_BACKSPACE){
+		} else if(c==KEY_BACKSPACE||c==127){
 			if(buffer.size()>0){
 				buffer.pop_back();
 				mvaddch(celly,popupx+buffer.size(),' ');
