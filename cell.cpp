@@ -87,13 +87,22 @@ vector<CellAddress> Cell::getDependencies() const noexcept {
 
 /*
 Serialisation format:
-First the number of reverse dependencies, then a list of them;
-followed by the edit string.
+First the number of reverse dependencies, then a list of them.
+Then a byte indicating whether this is an error cell, which has two strings to
+store instead of one, followed by the string(s) of the cell value.
 */
 void Cell::serialise(ostream &os) const {
 	writeUInt32LE(os,revdeps.size());
 	for(const CellAddress &revdepaddr : revdeps){
 		revdepaddr.serialise(os);
+	}
+	if(CellValueError *cve=dynamic_cast<CellValueError*>(value)){
+		os<<(unsigned char)1;
+		const string &s=cve->getErrorString();
+		writeUInt32LE(os,s.size());
+		os<<s;
+	} else {
+		os<<(unsigned char)0;
 	}
 	const string &s=value->getEditString();
 	writeUInt32LE(os,s.size());
@@ -108,12 +117,32 @@ void Cell::deserialise(istream &in){
 	for(i=0;i<nrevdeps;i++){
 		CellAddress ca=CellAddress::deserialise(in);
 		revdeps.insert(ca);
-		// revdeps.insert(CellAddress::deserialise(in));
 	}
-	unsigned int len=readUInt32LE(in);
-	if(in.fail())return;
-	string s;
-	s.resize(len);
-	in.read(&s.front(),len);
-	setEditString(s);
+	unsigned char iserror;
+	in>>iserror;
+	if(value)delete value;
+	if(iserror){
+		string err,edit;
+		unsigned int errlen,editlen;
+
+		errlen=readUInt32LE(in);
+		if(in.fail())return;
+		err.resize(errlen);
+		in.read(&err.front(),errlen);
+
+		editlen=readUInt32LE(in);
+		if(in.fail())return;
+		edit.resize(editlen);
+		in.read(&edit.front(),editlen);
+		if(in.fail())return;
+
+		value=new CellValueError(err,edit);
+	} else {
+		unsigned int len=readUInt32LE(in);
+		if(in.fail())return;
+		string s;
+		s.resize(len);
+		in.read(&s.front(),len);
+		value=CellValue::cellValueFromString(s);
+	}
 }

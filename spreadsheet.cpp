@@ -152,7 +152,7 @@ The file starts with the width and height of the sheet. Then the number of
 revdepsOutside, followed by them, in pairs.
 Finally all the cells, in row-major order.
 */
-#warning TODO fix serialisation of error values: make cellvalues serialisable
+
 bool Spreadsheet::saveToDisk(string fname) const {
 	ofstream out(fname);
 	if(out.fail())return false;

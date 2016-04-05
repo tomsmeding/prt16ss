@@ -96,6 +96,10 @@ string CellValueError::getEditString() const noexcept {
 	return editString;
 }
 
+string CellValueError::getErrorString() const noexcept {
+	return errString;
+}
+
 bool CellValueError::update(const CellArray &) noexcept {
 	return true;
 }

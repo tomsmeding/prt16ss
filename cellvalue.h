@@ -86,6 +86,7 @@ public:
 
 	string getDisplayString() const noexcept;
 	string getEditString() const noexcept;
+	string getErrorString() const noexcept;
 
 	bool update(const CellArray &cells) noexcept;
 
