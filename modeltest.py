@@ -35,6 +35,7 @@ class Interactor:
 			data=data.encode("utf-8")
 		else:
 			self.iolog+=data.decode("utf-8")
+		#sys.stdout.write(data if type(data)==str else data.decode("utf-8")); sys.stdout.flush() #DEBUG
 		cursor=0
 		while cursor<len(data):
 			count=self.proc.stdin.write(data if cursor==0 else data[cursor:])
@@ -66,6 +67,7 @@ class Interactor:
 		idx+=prevlen
 		line=self.readbuffer[bufidx][:idx]
 		self.readbuffer[bufidx]=self.readbuffer[bufidx][idx+len(terminator):]
+		#sys.stdout.write(line+terminator); sys.stdout.flush() #DEBUG
 		return line
 
 	def expect(self,s,stderr=False):
@@ -88,6 +90,7 @@ class Interactor:
 		if doraise or self.readbuffer[bufidx][:len(s)]!=s:
 			raise AssertionError("Expected string "+repr(s)+" not found on "+("stderr" if stderr else "stdout")+" of process, rather "+repr(self.readbuffer[bufidx]))
 		self.readbuffer[bufidx]=self.readbuffer[bufidx][len(s):]
+		#sys.stdout.write(s); sys.stdout.flush() #DEBUG
 
 	def pipe(self,out,stderr=False):
 		bufidx=1 if stderr else 0
@@ -298,6 +301,26 @@ testcases.append(("Sheet loading again",[
 	["disp B2","\"hoi hoi rip\""],
 
 	lambda: os.remove("_sheet_test_t.txt"),
+]))
+
+
+testcases=[]
+testcases.append(("Sanity",[
+	["ensure 3 3"],
+	["change A1 11","Changed: A1"],
+	["change A2 22","Changed: A2"],
+	["change A3 =A1+A2","Changed: A3"],
+	["disp A1","\"11\""],
+	["disp A2","\"22\""],
+	["disp A3","\"33\""],
+	["change A2 =A3",changedcheck(["A2","A3"])],
+	["disp A1","\"11\""],
+	["disp A2","\"ERR:Circular reference chain\""],
+	["disp A3","\"FERR:Error in formula dependencies\""],
+	["change A2 42",changedcheck(["A2","A3"])],
+	["disp A1","\"11\""],
+	["disp A2","\"42\""],
+	["disp A3","\"53\""]
 ]))
 
 
