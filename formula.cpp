@@ -425,7 +425,7 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,
 				if(arg[i].isLeft())argd[i]=arg[i].fromLeft();
 				else {
 					const string &argstr=arg[i].fromRight();
-					if(argstr.size()==0)argd[i]=nan("");
+					if(argstr.size()==0)argd[i]=0;
 					else {
 						startp=argstr.data();
 						argd[i]=strtod(startp,&endp);
