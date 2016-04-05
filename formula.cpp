@@ -1,3 +1,4 @@
+#include "spreadsheet.h"
 #include "cell.h"
 #include "formula.h"
 #include <sstream>

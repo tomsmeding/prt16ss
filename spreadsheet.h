@@ -1,6 +1,7 @@
 #pragma once
 
 #include "celladdress.h"
+#include "cell.h"
 #include <vector>
 #include <set>
 #include <unordered_map>
@@ -120,5 +121,3 @@ public:
 	//useful for safe querying
 	void ensureSheetSize(unsigned int width,unsigned int height);
 };
-
-#include "cell.h"

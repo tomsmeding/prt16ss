@@ -17,6 +17,8 @@ base class) to keep its value. Supports management of reverse dependencies, and
 serialisation.
 */
 
+class CellArray;
+
 class CellValue;
 
 class Cell{
