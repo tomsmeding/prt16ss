@@ -451,6 +451,9 @@ Either<double,string> Formula::evaluateSubtree(ASTNode *node,
 string Formula::evaluate(const CellArray &cells) const noexcept {
 	Either<double,string> res=evaluateSubtree(root,cells);
 	if(res.isLeft()){
+		double v=res.fromLeft();
+		if(std::isnan(v))return "NaN";
+		if(v==0)return "0"; //fix the -0 case
 		stringstream ss;
 		ss<<res.fromLeft();
 		return ss.str();
