@@ -302,6 +302,10 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 		}
 	}
 	while(opstack.size()){
+		if(nodestack.size()<2){
+			for(ASTNode *node : nodestack)delete node;
+			return "Too few arguments to operator "+opstack.back();
+		}
 		node=new ASTNode(AN_OPERATOR,opstack.back());
 		node->children.push_back(nodestack[nodestack.size()-2]);
 		node->children.push_back(nodestack.back());

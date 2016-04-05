@@ -4,6 +4,7 @@
 #include "spreadsheet.h"
 #include "conversion.h"
 #include "formula.h"
+#include <sstream>
 
 using namespace std;
 
@@ -32,7 +33,9 @@ CellValue* CellValue::cellValueFromString(string s) noexcept {
 
 template <typename T>
 string CellValueBasic<T>::getDisplayString() const noexcept {
-	return to_string(value);
+	stringstream ss;
+	ss<<value;
+	return ss.str();
 }
 
 template <>
