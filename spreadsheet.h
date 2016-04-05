@@ -100,6 +100,9 @@ class Spreadsheet{
 	bool checkCircularDependencies(CellAddress addr) noexcept;
 	bool checkCircularDependencies(CellAddress addr,set<CellAddress> &seen) noexcept;
 
+	void attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept;
+	void detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept;
+
 public:
 	Spreadsheet(unsigned int width,unsigned int height);
 

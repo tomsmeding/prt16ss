@@ -420,7 +420,11 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 				if(cell.isErrorValue()){
 					return Formula::Partialresult::errorValue();
 				}
-				return cell.getDisplayString();
+				string s=cell.getDisplayString();
+				char *strp=&s.front(),*endp;
+				double v=strtod(strp,&endp);
+				if(endp==strp)return s;
+				else return v;
 			}
 		case AN_RANGE:
 			//should not happen, since ranges are only parsed in function calls
@@ -448,29 +452,11 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 				return string("?function?");
 			}
 		case AN_OPERATOR:{
-			Formula::Partialresult arg[2]={
-				evaluateSubtree(node->children[0],cells),
-				evaluateSubtree(node->children[1],cells)
-			};
-			double argd[2];
-			const char *startp;
-			char *endp;
-			for(int i=0;i<2;i++){
-				if(arg[i].isError()){
-					return Formula::Partialresult::errorValue();
-				} else if(arg[i].isNumber())argd[i]=arg[i].numval;
-				else {
-					const string &argstr=arg[i].strval;
-					if(argstr.size()==0)argd[i]=0;
-					else {
-						startp=argstr.data();
-						argd[i]=strtod(startp,&endp);
-						if(endp-startp!=(ptrdiff_t)argstr.size()){
-							argd[i]=nan("");
-						}
-					}
-				}
-			}
+			Formula::Partialresult arg1=evaluateSubtree(node->children[0],cells);
+			if(!arg1.isNumber())return Formula::Partialresult::errorValue();
+			Formula::Partialresult arg2=evaluateSubtree(node->children[1],cells);
+			if(!arg2.isNumber())return Formula::Partialresult::errorValue();
+			double argd[2]={arg1.numval,arg2.numval};
 			if(node->strval=="+")return argd[0]+argd[1];
 			else if(node->strval=="-")return argd[0]-argd[1];
 			else if(node->strval=="*")return argd[0]*argd[1];
@@ -480,15 +466,12 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 			else return string("?operator?"); //again, should not happen etc.
 		}
 		default:
-			return string("?nodetype?"); //shouldn't even be think of it
+			return string("?nodetype?"); //shouldn't even think of it
 	}
 }
 
 Maybe<string> Formula::evaluate(const CellArray &cells) const noexcept {
 	Formula::Partialresult res=evaluateSubtree(root,cells);
-	cerr<<"isError: "<<res.isError()<<endl;
-	cerr<<"isNumber: "<<res.isNumber()<<endl;
-	cerr<<"isString: "<<res.isString()<<endl;
 	if(res.isError()){
 		return Nothing();
 	}

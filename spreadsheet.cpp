@@ -272,22 +272,41 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,
 	return seen;
 }
 
-Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr) noexcept {
-	if(!inBounds(addr))return Nothing();
-	Cell &cell=cells[addr];
-	for(const CellAddress &depaddr : cell.getDependencies()){
+void Spreadsheet::attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
+	for(const CellAddress &depaddr : depaddrs){
 		if(inBounds(depaddr)){
-			cells[depaddr].removeReverseDependency(addr);
+			cells[depaddr].addReverseDependency(dest);
+		} else {
+			auto it=revdepsOutside.find(depaddr);
+			if(it==revdepsOutside.end()){
+				revdepsOutside.emplace(depaddr,set<CellAddress>{dest});
+			} else {
+				it->second.insert(dest);
+			}
+		}
+	}
+}
+
+void Spreadsheet::detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
+	for(const CellAddress &depaddr : depaddrs){
+		if(inBounds(depaddr)){
+			cells[depaddr].removeReverseDependency(dest);
 		} else {
 			auto it=revdepsOutside.find(depaddr);
 			if(it!=revdepsOutside.end()){
-				auto vit=it->second.find(addr);
+				auto vit=it->second.find(dest);
 				if(vit!=it->second.end()){
 					it->second.erase(vit);
 				}
 			}
 		}
 	}
+}
+
+Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr) noexcept {
+	if(!inBounds(addr))return Nothing();
+	Cell &cell=cells[addr];
+	detachRevdeps(cell.getDependencies(),addr);
 	cell.setEditString(repr);
 	const vector<CellAddress> newcelldeps=cell.getDependencies();
 	for(const CellAddress &depaddr : newcelldeps){
@@ -296,23 +315,13 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 			return recursiveUpdate(addr,nullptr,false);
 		}
 	}
-	for(const CellAddress &depaddr : newcelldeps){
-		if(inBounds(depaddr)){
-			cells[depaddr].addReverseDependency(addr);
-		} else {
-			auto it=revdepsOutside.find(depaddr);
-			if(it==revdepsOutside.end()){
-				revdepsOutside.emplace(depaddr,set<CellAddress>{addr});
-			} else {
-				it->second.insert(addr);
-			}
-		}
-	}
+	attachRevdeps(newcelldeps,addr);
 	bool circularrefs;
 	set<CellAddress> changed=recursiveUpdate(addr,&circularrefs,true);
 	if(!circularrefs){
 		return changed;
 	}
+	detachRevdeps(newcelldeps,addr); //an error occured, so remove the revdeps again
 	cell.setError("Circular reference chain");
 	return recursiveUpdate(addr,nullptr,false);
 }

@@ -73,7 +73,6 @@ string Cell::getEditString() const noexcept {
 }
 
 bool Cell::isErrorValue() const noexcept {
-	cerr<<"isErrorValue("<<address.toRepresentation()<<") = "<<(bool)dynamic_cast<CellValueError*>(value)<<endl;
 	return (bool)dynamic_cast<CellValueError*>(value);
 }
 
