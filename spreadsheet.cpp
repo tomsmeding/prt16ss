@@ -115,7 +115,7 @@ const Cell* CellArrayIt::operator->() const {
 CellArrayIt& CellArrayIt::operator++() noexcept {
 	if(isend)return *this;
 	cursor.column++;
-	if(cursor.column>end.column){
+	if(cursor.column>end.column||cursor.column>=cells->width()){
 		cursor.column=begin.column;
 		cursor.row++;
 		if(cursor.row>end.row){
