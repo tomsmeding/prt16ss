@@ -20,7 +20,7 @@ class CellAddress;
 
 class CellValue{
 public:
-	virtual ~CellValue();
+	virtual ~CellValue() noexcept;
 
 	//returns a newly made cell with this value
 	//addr is its location in the sheet;
