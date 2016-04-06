@@ -111,5 +111,8 @@ bool CellValueError::update(const CellArray &) noexcept {
 }
 
 vector<CellAddress> CellValueError::getDependencies() const noexcept {
-	return vector<CellAddress>();
+	CellValue *cv=CellValue::cellValueFromString(editString);
+	vector<CellAddress> deps=cv->getDependencies();
+	delete cv;
+	return deps;
 }

@@ -96,6 +96,10 @@ class Spreadsheet{
 		                             bool *circularrefs,
 		                             bool updatefirst) noexcept;
 
+	//assumes given cell contains an error value, then propagates that through
+	//its reverse dependencies; returns cells changed
+	set<CellAddress> propagateError(CellAddress addr) noexcept;
+
 	//checks whether the dep chain starting from addr contains a cycle
 	//the second method should not be used directly; the first calls the second
 	bool checkCircularDependencies(CellAddress addr) noexcept;

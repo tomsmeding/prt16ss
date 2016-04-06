@@ -272,8 +272,31 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,
 	return seen;
 }
 
+set<CellAddress> Spreadsheet::propagateError(CellAddress addr) noexcept {
+	Cell &cell=cells[addr];
+	const string &errString=cell.getDisplayString().substr(4); //strip "ERR:"
+	set<CellAddress> seen;
+	seen.insert(addr);
+	set<CellAddress> revdeps=cell.getReverseDependencies();
+	while(revdeps.size()){
+		set<CellAddress> newrevdeps;
+		for(CellAddress revdepaddr : revdeps){
+			if(!seen.insert(revdepaddr).second){
+				continue;
+			}
+			Cell &revdepcell=cells[revdepaddr];
+			revdepcell.setError(errString);
+			const set<CellAddress> d=revdepcell.getReverseDependencies();
+			newrevdeps.insert(d.begin(),d.end());
+		}
+		revdeps=move(newrevdeps);
+	}
+	return seen;
+}
+
 void Spreadsheet::attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
 	for(const CellAddress &depaddr : depaddrs){
+		//cerr<<"attaching revdep "<<depaddr.toRepresentation()<<" -> "<<dest.toRepresentation()<<endl;
 		if(inBounds(depaddr)){
 			cells[depaddr].addReverseDependency(dest);
 		} else {
@@ -289,6 +312,7 @@ void Spreadsheet::attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress 
 
 void Spreadsheet::detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
 	for(const CellAddress &depaddr : depaddrs){
+		//cerr<<"detaching revdep "<<depaddr.toRepresentation()<<" -> "<<dest.toRepresentation()<<endl;
 		if(inBounds(depaddr)){
 			cells[depaddr].removeReverseDependency(dest);
 		} else {
@@ -305,6 +329,7 @@ void Spreadsheet::detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress 
 
 Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr) noexcept {
 	if(!inBounds(addr))return Nothing();
+	//cerr<<"changeCellValue("<<addr.toRepresentation()<<','<<repr<<')'<<endl;
 	Cell &cell=cells[addr];
 	detachRevdeps(cell.getDependencies(),addr);
 	cell.setEditString(repr);
@@ -321,9 +346,10 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 	if(!circularrefs){
 		return changed;
 	}
-	detachRevdeps(newcelldeps,addr); //an error occured, so remove the revdeps again
+	//cerr<<"  circularrefs!"<<endl;
+	//detachRevdeps(newcelldeps,addr); //an error occured, so remove the revdeps again
 	cell.setError("Circular reference chain");
-	return recursiveUpdate(addr,nullptr,false);
+	return propagateError(addr);
 }
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){
