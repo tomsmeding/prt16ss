@@ -432,6 +432,7 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 					return Formula::Partialresult::errorValue();
 				}
 				string s=cell.getDisplayString();
+				if(s.size()==0)return 0;
 				Maybe<double> mv=convertstring<double>(s);
 				if(mv.isNothing())return s;
 				else return mv.fromJust();
