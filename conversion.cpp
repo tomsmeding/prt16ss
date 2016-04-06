@@ -14,7 +14,7 @@ Maybe<int> convertstring<int>(string s) noexcept {
 	} catch(invalid_argument e){
 		return Nothing();
 	} catch(out_of_range e){
-		return 1/0; //==inf
+		return Nothing();
 	}
 	if(endpos!=s.size())return Nothing();
 	return intval;
@@ -30,7 +30,7 @@ Maybe<double> convertstring<double>(string s) noexcept {
 	} catch(invalid_argument e){
 		return Nothing();
 	} catch(out_of_range e){
-		return Nothing();
+		return 1/0.0; //==inf
 	}
 	if(endpos!=s.size())return Nothing();
 	return doubleval;
