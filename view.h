@@ -23,6 +23,8 @@ public:
 
 	void setCursorPosition(CellAddress addr); //moves the cursor to that position
 
+	CellAddress getCursorPosition(); //gets the cursor position
+
 	//places an edit window (pop-up?) over the specified cell with the specified default
 	//value, and returns the entered value. (Nothing if escape pressed)
 	Maybe<string> getStringWithEditWindowOverCell(CellAddress loc,string defval);

@@ -113,6 +113,10 @@ void SheetView::setCursorPosition(CellAddress addr){
 	}
 }
 
+CellAddress SheetView::getCursorPosition(){
+	return cursor;
+}
+
 Maybe<string> SheetView::getTextBoxString(int wid,string buffer){
 	int storey,storex;
 	getyx(stdscr,storey,storex);
