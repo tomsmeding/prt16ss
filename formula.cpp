@@ -2,6 +2,7 @@
 #include "cell.h"
 #include "cellvalue.h"
 #include "formula.h"
+#include "conversion.h"
 #include <sstream>
 #include <unordered_map>
 #include <functional>
@@ -62,15 +63,10 @@ Formula::Token::Token(tokentype_t type,string value) noexcept
 const unordered_map<string,function<double(const CellArray&,CellRange)>> functionmap={
 	{"SUM",[](const CellArray &cells,CellRange range) -> double {
 		double res=0;
-		const char *startp;
-		char *endp;
 		for(const Cell &cell : cells.range(range)){
-			string dispstr=cell.getDisplayString();
-			startp=dispstr.data();
-			double item=strtod(startp,&endp);
-			if(endp-startp==(ptrdiff_t)dispstr.size()){
-				res+=item; //if the value is not a number, it just isn't added
-			}
+			Maybe<double> mitem=convertstring<double>(cell.getDisplayString());
+			if(mitem.isNothing())continue;
+			res+=mitem.fromJust();
 		}
 		return res;
 	}},
@@ -436,10 +432,9 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 					return Formula::Partialresult::errorValue();
 				}
 				string s=cell.getDisplayString();
-				char *strp=&s.front(),*endp;
-				double v=strtod(strp,&endp);
-				if(endp==strp)return s;
-				else return v;
+				Maybe<double> mv=convertstring<double>(s);
+				if(mv.isNothing())return s;
+				else return mv.fromJust();
 			}
 		case AN_RANGE:
 			//should not happen, since ranges are only parsed in function calls
