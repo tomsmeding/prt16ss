@@ -30,7 +30,7 @@ void SheetView::redraw(){
 	}
 	attroff(A_REVERSE);
 	for(i=0;i<COLS/8-1;i++){
-		for(j=0;j<LINES-1;j++){
+		for(j=0;j<LINES-2;j++){
 			if(CellAddress(j+scroll.row,i+scroll.column)==cursor)continue;
 			redrawCell(CellAddress(j+scroll.row,i+scroll.column),false);
 		}
