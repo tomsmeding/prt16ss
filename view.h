@@ -1,6 +1,5 @@
 #pragma once
 
-
 #include <ncurses.h>
 #include <string>
 #include <vector>
@@ -45,4 +44,6 @@ private:
 	int columnToX(int column) const;
 
 	void drawBoxAround(int x,int y,int w,int h);
+
+	Maybe<string> getTextBoxString(int wid,string buffer);
 };

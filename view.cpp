@@ -31,11 +31,11 @@ void SheetView::redraw(){
 	attroff(A_REVERSE);
 	for(i=0;i<COLS/8-1;i++){
 		for(j=0;j<LINES-1;j++){
+			if(CellAddress(j+scroll.row,i+scroll.column)==cursor)continue;
 			redrawCell(CellAddress(j+scroll.row,i+scroll.column),false);
 		}
 	}
-	refresh();
-	move(rowToY(cursor.row),columnToX(cursor.column));
+	redrawCell(cursor,true);
 }
 
 void SheetView::redrawCell(CellAddress addr){
@@ -77,46 +77,77 @@ void SheetView::redrawCell(CellAddress addr,bool dorefresh){
 }
 
 void SheetView::setCursorPosition(CellAddress addr){
-	CellAddress oldcursor=cursor;
-	cursor=addr;
-	redrawCell(oldcursor,false);
-	if(oldcursor.column<COLS/8-1+scroll.column-1){
-		redrawCell(CellAddress(oldcursor.row,oldcursor.column+1));
+	bool didscroll=false;
+	if(addr.column>=scroll.column+COLS/8-1){
+		scroll.column+=addr.column-scroll.column-(COLS/8-1);
+		didscroll=true;
 	}
-	displayStatusString("");
-	redrawCell(cursor,true);
+	if(addr.row>=scroll.row+LINES-2){
+		scroll.row+=addr.row-scroll.row-(LINES-2);
+		didscroll=true;
+	}
+	if(didscroll){
+		redraw();
+	} else {
+		CellAddress oldcursor=cursor;
+		cursor=addr;
+		redrawCell(oldcursor,false);
+		if(oldcursor.column<COLS/8-1+scroll.column-1){
+			redrawCell(CellAddress(oldcursor.row,oldcursor.column+1));
+		}
+		displayStatusString("");
+		redrawCell(cursor,true);
+	}
 }
 
-Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string buffer){
-	const int cellx=columnToX(loc.column),celly=rowToY(loc.row);
-	const int popupx=min(cellx,COLS-17);
-	drawBoxAround(popupx,celly,16,1);
-	move(celly,popupx);
-	for(int i=popupx;i<popupx+16;i++)addch(' ');
-	if(buffer.size()>16)buffer.erase(buffer.begin()+16,buffer.end());
-	mvaddstr(celly,popupx,buffer.data());
+Maybe<string> SheetView::getTextBoxString(int wid,string buffer){
+	int storey,storex;
+	getyx(stdscr,storey,storex);
+	for(int i=0;i<wid;i++)addch(' ');
+	if((int)buffer.size()>wid)buffer.erase(buffer.begin()+wid,buffer.end());
+	mvaddstr(storey,storex,buffer.data());
 	while(true){
 		int c=getch();
 		if(c==27){ //escape
-			redraw();
 			return Nothing(); //didn't edit anything
 		} else if(c==KEY_BACKSPACE||c==127){
 			if(buffer.size()>0){
 				buffer.pop_back();
-				mvaddch(celly,popupx+buffer.size(),' ');
-				move(celly,popupx+buffer.size());
+				mvaddch(storey,storex+buffer.size(),' ');
+				move(storey,storex+buffer.size());
 			}
 		} else if(c=='\n'){
 			break; //accepted value
 		} else if(c>=32&&c<127){
-			if(buffer.size()<16){
+			if((int)buffer.size()<wid){
 				buffer+=(char)c;
 				addch((char)c);
 			}
 		}
 	}
-	redraw();
 	return buffer;
+}
+
+Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string defval){
+	const int cellx=columnToX(loc.column),celly=rowToY(loc.row);
+	const int popupx=min(cellx,COLS-17);
+	drawBoxAround(popupx,celly,16,1);
+	move(celly,popupx);
+	Maybe<string> ret=getTextBoxString(16,defval);
+	redraw();
+	return ret;
+}
+
+Maybe<string> SheetView::askStringOfUser(string prompt,string prefilled){
+	int storey,storex;
+	getyx(stdscr,storey,storex);
+	move(LINES-1,0);
+	if((int)prompt.size()>=COLS-10)prompt.erase(prompt.begin()+COLS-10,prompt.end());
+	addstr(prompt.data());
+	addch(' ');
+	Maybe<string> ret=getTextBoxString(COLS-prompt.size()-1,prefilled);
+	move(storey,storex);
+	return ret;
 }
 
 void SheetView::displayStatusString(string s){
