@@ -316,7 +316,7 @@ testcases.append(("Sanity",[
 	["change A2 =A3",changedcheck(["A2","A3"])],
 	["disp A1","\"11\""],
 	["disp A2","\"ERR:Circular reference chain\""],
-	["disp A3","\"FERR:Error in formula dependencies\""],
+	["disp A3","\"ERR:Circular reference chain\""],
 	["change A2 42",changedcheck(["A2","A3"])],
 	["disp A1","\"11\""],
 	["disp A2","\"42\""],
