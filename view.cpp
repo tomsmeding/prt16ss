@@ -15,18 +15,21 @@ SheetView::~SheetView(){
 	endwin();
 }
 
-void SheetView::redraw(){
+void SheetView::redraw(bool full){
+	if(full){
+		clear();
+	}
 	int i,j;
 	move(0,0);
 	addstr("        ");
 	attron(A_REVERSE);
 	for(i=0;i<COLS/8-1;i++){
 		string label=centreString(columnLabel(i+scroll.column),8);
-		mvaddstr(0,columnToX(i),label.data());
+		mvaddstr(0,columnToX(i+scroll.column),label.data());
 	}
 	for(i=0;i<LINES-2;i++){
 		string label=centreString(to_string(i+1+scroll.row),8);
-		mvaddstr(rowToY(i),0,label.data());
+		mvaddstr(rowToY(i+scroll.row),0,label.data());
 	}
 	attroff(A_REVERSE);
 	for(i=0;i<COLS/8-1;i++){
@@ -77,22 +80,32 @@ void SheetView::redrawCell(CellAddress addr,bool dorefresh){
 }
 
 void SheetView::setCursorPosition(CellAddress addr){
+	sheet.ensureSheetSize(addr.column+1,addr.row+1);
 	bool didscroll=false;
 	if(addr.column>=scroll.column+COLS/8-1){
-		scroll.column+=addr.column-scroll.column-(COLS/8-1);
+		scroll.column=addr.column-(COLS/8-1)+1;
 		didscroll=true;
 	}
 	if(addr.row>=scroll.row+LINES-2){
-		scroll.row+=addr.row-scroll.row-(LINES-2);
+		scroll.row=addr.row-(LINES-2)+1;
+		didscroll=true;
+	}
+	if(addr.column<scroll.column){
+		scroll.column=addr.column;
+		didscroll=true;
+	}
+	if(addr.row<scroll.row){
+		scroll.row=addr.row;
 		didscroll=true;
 	}
 	if(didscroll){
+		cursor=addr;
 		redraw();
 	} else {
 		CellAddress oldcursor=cursor;
 		cursor=addr;
 		redrawCell(oldcursor,false);
-		if(oldcursor.column<COLS/8-1+scroll.column-1){
+		if((int)oldcursor.column-(int)scroll.column<COLS/8-2){
 			redrawCell(CellAddress(oldcursor.row,oldcursor.column+1));
 		}
 		displayStatusString("");

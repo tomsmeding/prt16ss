@@ -18,7 +18,7 @@ public:
 	//does nothing if outside screen
 	void redrawCell(CellAddress addr);
 
-	void redraw(); //redraws entire (visible) screen
+	void redraw(bool full=false); //redraws entire (visible) screen
 	int getChar(); //reads a character
 
 	void setCursorPosition(CellAddress addr); //moves the cursor to that position

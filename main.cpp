@@ -26,6 +26,11 @@ int main(){
 				}
 				break;
 			}
+			case KEY_BACKSPACE:
+			case 127:
+				sheet.changeCellValue(cursor,"");
+				view.redraw();
+				break;
 			case 's':{
 				Maybe<string> mfname=view.askStringOfUser("Save to file name?",lastsavefname);
 				if(mfname.isNothing()){
@@ -74,6 +79,9 @@ int main(){
 			case KEY_DOWN:
 				cursor.row++;
 				view.setCursorPosition(cursor);
+				break;
+			case KEY_RESIZE:
+				view.redraw(true);
 				break;
 			default:
 				cout<<'\007'<<flush;
