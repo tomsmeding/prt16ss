@@ -11,6 +11,7 @@ SheetController::SheetController(string filename) : fname(filename), sheet(20, 2
 void SheetController::save() {
 	bool success;
 	if (!fname.empty()) {
+		fname = view.askStringOfUser("Filename to save to:", fname).fromJust();
 		success = sheet.saveToDisk(fname);
 	} else {
 		fname = view.askStringOfUser("Filename to save to:", "").fromJust();
@@ -29,6 +30,7 @@ void SheetController::runloop() {
 			case 'l': {
 				bool success;
 				if (!fname.empty()) {
+					fname = view.askStringOfUser("Filename to load from:", fname).fromJust();
 					success = sheet.loadFromDisk(fname);
 				} else {
 					fname = view.askStringOfUser("Filename to load from:", "").fromJust();
@@ -37,6 +39,7 @@ void SheetController::runloop() {
 				if (!success) {
 					view.displayStatusString("Load was unsuccessful. Please try again.");
 				}
+				view.redraw();
 				break;
 			}
 				
@@ -46,7 +49,8 @@ void SheetController::runloop() {
 			}
 				
 			case 'q': {
-				string savestring = view.askStringOfUser("Would you like to save? (y/n)", "n").fromJust();
+				//Ask the user to save before return? Default value still needs to be set
+				string savestring = view.askStringOfUser("Would you like to save? (y/n)", "y").fromJust();
 				if (savestring == "y") {
 					save();
 				}
