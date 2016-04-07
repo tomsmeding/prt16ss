@@ -60,7 +60,7 @@ void SheetView::redrawCell(CellAddress addr,bool dorefresh){
 			displayStatusString(dispvalue); //inform of full display value
 		}
 		attron(A_REVERSE);
-		leftx=min(columnToX(addr.column),COLS-1-(int)value.size());
+		leftx=min(columnToX(addr.column),COLS/8*8-(int)value.size());
 	} else {
 		value=sheet.getCellDisplayString(addr).fromJust();
 		if(value.size()>8)value.erase(value.begin()+8,value.end());
@@ -75,7 +75,7 @@ void SheetView::redrawCell(CellAddress addr,bool dorefresh){
 	}
 	if(dorefresh){
 		refresh();
-		move(rowToY(cursor.row),leftx);
+		move(rowToY(cursor.row),columnToX(cursor.column));
 	}
 }
 
@@ -105,8 +105,12 @@ void SheetView::setCursorPosition(CellAddress addr){
 		CellAddress oldcursor=cursor;
 		cursor=addr;
 		redrawCell(oldcursor,false);
-		if((int)oldcursor.column-(int)scroll.column<COLS/8-2){
+		//redraw left&right too, since the cell value might have leaked there
+		if((int)oldcursor.column-(int)scroll.column<COLS/8-2){ //right
 			redrawCell(CellAddress(oldcursor.row,oldcursor.column+1));
+		}
+		if((int)oldcursor.column-(int)scroll.column>0){ //left
+			redrawCell(CellAddress(oldcursor.row,oldcursor.column-1));
 		}
 		displayStatusString("");
 		redrawCell(cursor,true);
@@ -151,7 +155,7 @@ Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string 
 	drawBoxAround(popupx,celly,16,1);
 	move(celly,popupx);
 	Maybe<string> ret=getTextBoxString(16,defval);
-	redraw();
+	redraw(true); //full redraw to remove any artifacts right of the cells, possibly
 	return ret;
 }
 
