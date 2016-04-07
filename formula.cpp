@@ -131,14 +131,14 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 			for(i++;i<len;i++){
 				if(formula[i]==quote)break;
 				if(formula[i]=='\\'){
-					if(i>=len-2)return string("String niet afgesloten met een quote");
+					if(i>=len-2)return string("String not closed with a quote");
 					token.value+=formula[i+1];
 					i++;
 				} else {
 					token.value+=formula[i];
 				}
 			}
-			if(i==len)return string("String niet afgesloten met een quote");
+			if(i==len)return string("String not closed with a quote");
 			tokens.push_back(move(token));
 			prevWasOperator=false;
 		} else if(isdigit(formula[i])||(
@@ -163,12 +163,12 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 			Maybe<Token> mtoken=tryTokeniseNameAddressRange(formula,i);
 			i--;
 			if(mtoken.isNothing()){
-				return string("Ongeldig adres of range in formule");
+				return string("Invalid adress or range in formula");
 			}
 			tokens.push_back(mtoken.fromJust());
 			prevWasOperator=false; //for good order
 		} else {
-			return string("Ongeldig teken '")+formula[i]+"' in formule";
+			return string("Invalid character '")+formula[i]+"' in formule";
 		}
 	}
 	return tokens;
@@ -403,7 +403,7 @@ public:
 
 	Partialresult(double numval):numflag(true),numval(numval){}
 	Partialresult(string strval):strval(strval){}
-	
+
 	static Partialresult errorValue(){
 		Partialresult p;
 		p.errflag=true;
