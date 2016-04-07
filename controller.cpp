@@ -1,7 +1,7 @@
 #include <ncurses.h>
 #include "controller.h"
 
-SheetController::SheetController(string filename) : fname(filename), sheet(20, 20), view(sheet) {
+SheetController::SheetController(string filename) : sheet(20, 20), view(sheet), fname(filename) {
 	if (!filename.empty()) {
 		sheet.loadFromDisk(fname);
 	}
@@ -11,10 +11,18 @@ SheetController::SheetController(string filename) : fname(filename), sheet(20, 2
 void SheetController::save() {
 	bool success;
 	if (!fname.empty()) {
-		fname = view.askStringOfUser("Filename to save to:", fname).fromJust();
+		Maybe<string> mfname = view.askStringOfUser("Filename to save to:", fname);
+		if (mfname.isNothing()) {
+			return;
+		}
+		fname = mfname.fromJust();
 		success = sheet.saveToDisk(fname);
 	} else {
-		fname = view.askStringOfUser("Filename to save to:", "").fromJust();
+		Maybe<string> mfname = view.askStringOfUser("Filename to save to:", "");
+		if (mfname.isNothing()) {
+			return;
+		}
+		fname = mfname.fromJust();
 		success = sheet.saveToDisk(fname);
 	}
 	if (!success) {
@@ -30,10 +38,18 @@ void SheetController::runloop() {
 			case 'l': {
 				bool success;
 				if (!fname.empty()) {
-					fname = view.askStringOfUser("Filename to load from:", fname).fromJust();
+					Maybe<string> mfname = view.askStringOfUser("Filename to load from:", fname);
+					if (mfname.isNothing()) {
+						break;
+					}
+					fname = mfname.fromJust();
 					success = sheet.loadFromDisk(fname);
 				} else {
-					fname = view.askStringOfUser("Filename to load from:", "").fromJust();
+					Maybe<string> mfname = view.askStringOfUser("Filename to load from:", "");
+					if (mfname.isNothing()) {
+						break;
+					}
+					fname = mfname.fromJust();
 					success = sheet.loadFromDisk(fname);
 				}
 				if (!success) {
@@ -50,8 +66,11 @@ void SheetController::runloop() {
 				
 			case 'q': {
 				//Ask the user to save before return? Default value still needs to be set
-				string savestring = view.askStringOfUser("Would you like to save? (y/n)", "y").fromJust();
-				if (savestring == "y") {
+				Maybe<string> mresponse = view.askStringOfUser("Would you like to save? (y/n)", "y");
+				if (mresponse.isNothing()) {
+					break;
+				}
+				if (mresponse.fromJust() == "y") {
 					save();
 				}
 				return;
