@@ -59,7 +59,7 @@ Formula::Token::Token(tokentype_t type,string value) noexcept
 
 
 
-//The sopreadsheet formula functions
+//The spreadsheet formula functions
 const unordered_map<string,function<double(const CellArray&,CellRange)>> functionmap={
 	{"SUM",[](const CellArray &cells,CellRange range) -> double {
 		double res=0;

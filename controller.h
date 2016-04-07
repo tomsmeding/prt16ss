@@ -2,6 +2,10 @@
 #include "view.h"
 #include <string>
 
+/*
+The class that does the I/O and connects the model and the view together.
+*/
+
 class SheetController{
 private:
 	Spreadsheet sheet;

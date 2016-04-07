@@ -10,6 +10,11 @@
 
 using namespace std;
 
+/*
+The View, the class that handles all the direct screen output and communicates
+with ncurses.
+*/
+
 class SheetView{
 public:
 	SheetView(Spreadsheet &sheet);

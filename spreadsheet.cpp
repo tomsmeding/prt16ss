@@ -296,7 +296,6 @@ set<CellAddress> Spreadsheet::propagateError(CellAddress addr) noexcept {
 
 void Spreadsheet::attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
 	for(const CellAddress &depaddr : depaddrs){
-		//cerr<<"attaching revdep "<<depaddr.toRepresentation()<<" -> "<<dest.toRepresentation()<<endl;
 		if(inBounds(depaddr)){
 			cells[depaddr].addReverseDependency(dest);
 		} else {
@@ -312,7 +311,6 @@ void Spreadsheet::attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress 
 
 void Spreadsheet::detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
 	for(const CellAddress &depaddr : depaddrs){
-		//cerr<<"detaching revdep "<<depaddr.toRepresentation()<<" -> "<<dest.toRepresentation()<<endl;
 		if(inBounds(depaddr)){
 			cells[depaddr].removeReverseDependency(dest);
 		} else {
@@ -329,7 +327,6 @@ void Spreadsheet::detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress 
 
 Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr) noexcept {
 	if(!inBounds(addr))return Nothing();
-	//cerr<<"changeCellValue("<<addr.toRepresentation()<<','<<repr<<')'<<endl;
 	Cell &cell=cells[addr];
 	detachRevdeps(cell.getDependencies(),addr);
 	cell.setEditString(repr);
@@ -346,8 +343,6 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 	if(!circularrefs){
 		return changed;
 	}
-	//cerr<<"  circularrefs!"<<endl;
-	//detachRevdeps(newcelldeps,addr); //an error occured, so remove the revdeps again
 	cell.setError("Circular reference chain");
 	return propagateError(addr);
 }

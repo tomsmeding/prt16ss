@@ -36,7 +36,7 @@ Either<T,U>::Either(T *left,U *right) noexcept
 	:left(left),right(right){}
 
 template <typename T,typename U>
-Either<T,U>::~Either() noexcept{
+Either<T,U>::~Either() noexcept {
 	if(left)delete left;
 	if(right)delete right;
 }
