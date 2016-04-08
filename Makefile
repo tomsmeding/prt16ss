@@ -1,3 +1,5 @@
+# Tom Smeding (s1685694), Tim Brouwer (s1663615), Ruben Turkenburg (s1659685)
+
 CXX = /vol/share/software/gcc/5.3.0/bin/g++ -Wl,--rpath=/vol/share/software/gcc/5.3.0/lib64
 CXXFLAGS = -Wall -Wextra -std=c++14 -O2
 LDFLAGS = -lncurses
