@@ -168,7 +168,7 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 			tokens.push_back(mtoken.fromJust());
 			prevWasOperator=false; //for good order
 		} else {
-			return string("Invalid character '")+formula[i]+"' in formule";
+			return string("Invalid character '")+formula[i]+"' in formula";
 		}
 	}
 	return tokens;
