@@ -261,9 +261,7 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,
 	while(revdeps.size()){
 		set<CellAddress> newrevdeps;
 		for(CellAddress revdepaddr : revdeps){
-			if(!seen.insert(revdepaddr).second){
-				continue;
-			}
+			seen.insert(revdepaddr);
 			Cell &revdepcell=cells[revdepaddr];
 			revdepcell.update(cells);
 			const set<CellAddress> d=revdepcell.getReverseDependencies();
