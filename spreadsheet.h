@@ -54,6 +54,7 @@ public:
 	void resize(unsigned int w,unsigned int h); //can forcibly resize down
 
 	RangeWrapper range(CellRange r) const noexcept; //iterator provider
+	//this skips cells that are out of range
 };
 
 class CellArrayIt : public iterator<input_iterator_tag,Cell*>{
@@ -94,6 +95,10 @@ class Spreadsheet{
 	set<CellAddress> recursiveUpdate(CellAddress addr,
 		                             bool *circularrefs,
 		                             bool updatefirst) noexcept;
+
+	//assumes given cell contains an error value, then propagates that through
+	//its reverse dependencies; returns cells changed
+	set<CellAddress> propagateError(CellAddress addr) noexcept;
 
 	//checks whether the dep chain starting from addr contains a cycle
 	//the second method should not be used directly; the first calls the second

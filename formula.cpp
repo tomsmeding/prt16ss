@@ -2,6 +2,7 @@
 #include "cell.h"
 #include "cellvalue.h"
 #include "formula.h"
+#include "conversion.h"
 #include <sstream>
 #include <unordered_map>
 #include <functional>
@@ -58,19 +59,14 @@ Formula::Token::Token(tokentype_t type,string value) noexcept
 
 
 
-//The sopreadsheet formula functions
+//The spreadsheet formula functions
 const unordered_map<string,function<double(const CellArray&,CellRange)>> functionmap={
 	{"SUM",[](const CellArray &cells,CellRange range) -> double {
 		double res=0;
-		const char *startp;
-		char *endp;
 		for(const Cell &cell : cells.range(range)){
-			string dispstr=cell.getDisplayString();
-			startp=dispstr.data();
-			double item=strtod(startp,&endp);
-			if(endp-startp==(ptrdiff_t)dispstr.size()){
-				res+=item; //if the value is not a number, it just isn't added
-			}
+			Maybe<double> mitem=convertstring<double>(cell.getDisplayString());
+			if(mitem.isNothing())continue;
+			res+=mitem.fromJust();
 		}
 		return res;
 	}},
@@ -135,14 +131,14 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 			for(i++;i<len;i++){
 				if(formula[i]==quote)break;
 				if(formula[i]=='\\'){
-					if(i>=len-2)return string("String niet afgesloten met een quote");
+					if(i>=len-2)return string("String not closed with a quote");
 					token.value+=formula[i+1];
 					i++;
 				} else {
 					token.value+=formula[i];
 				}
 			}
-			if(i==len)return string("String niet afgesloten met een quote");
+			if(i==len)return string("String not closed with a quote");
 			tokens.push_back(move(token));
 			prevWasOperator=false;
 		} else if(isdigit(formula[i])||(
@@ -167,12 +163,12 @@ Either<string,vector<Formula::Token>> Formula::tokeniseFormula(const string &for
 			Maybe<Token> mtoken=tryTokeniseNameAddressRange(formula,i);
 			i--;
 			if(mtoken.isNothing()){
-				return string("Ongeldig adres of range in formule");
+				return string("Invalid adress or range in formula");
 			}
 			tokens.push_back(mtoken.fromJust());
 			prevWasOperator=false; //for good order
 		} else {
-			return string("Ongeldig teken '")+formula[i]+"' in formule";
+			return string("Invalid character '")+formula[i]+"' in formula";
 		}
 	}
 	return tokens;
@@ -184,6 +180,7 @@ unordered_map<string,int> precedencemap={
 	{")",INT_MIN},
 	{"+",1},
 	{"-",1},
+	{"(-)",2}, //the unary minus
 	{"*",2},
 	{"/",2},
 	{"%",2},
@@ -195,6 +192,7 @@ unordered_map<string,bool> leftassocmap={
 	{")",false},
 
 	{"+",true},
+	{"(-)",true},
 	{"-",true}, //make all operators of the same precedence, the same
 	{"*",true}, //associativity!
 	{"/",true},
@@ -211,24 +209,29 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 	vector<string> opstack;
 	ASTNode *node;
 
+	bool prevWasOperator=true;
+
 	const int len=tokens.size();
 
 	for(int i=0;i<len;i++){
 		switch(tokens[i].type){
 			case TT_STRING:
 				nodestack.push_back(new ASTNode(AN_STRING,tokens[i].value));
+				prevWasOperator=false;
 				break;
 			case TT_NUMBER:
 				nodestack.push_back(new ASTNode(
 					AN_NUMBER,
 					strtod(tokens[i].value.data(),nullptr)
 				));
+				prevWasOperator=false;
 				break;
 			case TT_ADDRESS:
 				nodestack.push_back(new ASTNode(
 					AN_ADDRESS,
 					CellAddress::fromRepresentation(tokens[i].value).fromJust()
 				));
+				prevWasOperator=false;
 				break;
 			case TT_RANGE:
 				for(ASTNode *node : nodestack)delete node;
@@ -261,10 +264,16 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 				}
 				nodestack.push_back(node);
 				i+=3;
+				prevWasOperator=false;
 				break;
 			case TT_SYMBOL:
 				if(tokens[i].value=="("){
 					opstack.push_back("(");
+					prevWasOperator=true;
+				} else if(tokens[i].value=="-"&&prevWasOperator){
+					//unary minus
+					opstack.push_back("(-)");
+					prevWasOperator=true; //technically unnecessary
 				} else {
 					const int prec=precedencemap[tokens[i].value];
 					const bool leftassoc=leftassocmap[tokens[i].value];
@@ -273,15 +282,15 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 						// both left-assoc: also pop equal-prec operators
 						// both right-assoc: only pop higher-prec operators
 						if(otherprec>prec||(leftassoc&&otherprec==prec)){
-							if(nodestack.size()<2){
+							if((nodestack.size()<2&&opstack.back()!="(-)")||nodestack.size()<1){
 								for(ASTNode *node : nodestack)delete node;
 								return "Not enough arguments to operator "+
 								       opstack.back()+"?";
 							}
 							node=new ASTNode(AN_OPERATOR,opstack.back());
-							node->children.push_back(nodestack[nodestack.size()-2]);
+							if(opstack.back()!="(-)")node->children.push_back(nodestack[nodestack.size()-2]);
 							node->children.push_back(nodestack.back());
-							nodestack.pop_back();
+							if(opstack.back()!="(-)")nodestack.pop_back();
 							nodestack.pop_back();
 							nodestack.push_back(node);
 							opstack.pop_back();
@@ -295,22 +304,24 @@ Either<string,Formula::ASTNode*> Formula::parseExpression(const vector<Token> &t
 						//because of their precedence, we can now assume
 						//that opstack.back()=="("
 						opstack.pop_back();
+						prevWasOperator=false;
 					} else {
 						opstack.push_back(tokens[i].value);
+						prevWasOperator=true;
 					}
 				}
 				break;
 		}
 	}
 	while(opstack.size()){
-		if(nodestack.size()<2){
+		if((nodestack.size()<2&&opstack.back()!="(-)")||nodestack.size()<1){
 			for(ASTNode *node : nodestack)delete node;
-			return "Too few arguments to operator "+opstack.back();
+			return "Not enough arguments to operator "+opstack.back()+"?";
 		}
 		node=new ASTNode(AN_OPERATOR,opstack.back());
-		node->children.push_back(nodestack[nodestack.size()-2]);
+		if(opstack.back()!="(-)")node->children.push_back(nodestack[nodestack.size()-2]);
 		node->children.push_back(nodestack.back());
-		nodestack.pop_back();
+		if(opstack.back()!="(-)")nodestack.pop_back();
 		nodestack.pop_back();
 		nodestack.push_back(node);
 		opstack.pop_back();
@@ -392,7 +403,7 @@ public:
 
 	Partialresult(double numval):numflag(true),numval(numval){}
 	Partialresult(string strval):strval(strval){}
-	
+
 	static Partialresult errorValue(){
 		Partialresult p;
 		p.errflag=true;
@@ -421,10 +432,10 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 					return Formula::Partialresult::errorValue();
 				}
 				string s=cell.getDisplayString();
-				char *strp=&s.front(),*endp;
-				double v=strtod(strp,&endp);
-				if(endp==strp)return s;
-				else return v;
+				if(s.size()==0)return 0;
+				Maybe<double> mv=convertstring<double>(s);
+				if(mv.isNothing())return s;
+				else return mv.fromJust();
 			}
 		case AN_RANGE:
 			//should not happen, since ranges are only parsed in function calls
@@ -452,6 +463,11 @@ Formula::Partialresult Formula::evaluateSubtree(ASTNode *node,
 				return string("?function?");
 			}
 		case AN_OPERATOR:{
+			if(node->strval=="(-)"){
+				Formula::Partialresult arg=evaluateSubtree(node->children[0],cells);
+				if(!arg.isNumber())return Formula::Partialresult::errorValue();
+				return -arg.numval;
+			}
 			Formula::Partialresult arg1=evaluateSubtree(node->children[0],cells);
 			if(!arg1.isNumber())return Formula::Partialresult::errorValue();
 			Formula::Partialresult arg2=evaluateSubtree(node->children[1],cells);

@@ -115,7 +115,7 @@ const Cell* CellArrayIt::operator->() const {
 CellArrayIt& CellArrayIt::operator++() noexcept {
 	if(isend)return *this;
 	cursor.column++;
-	if(cursor.column>end.column){
+	if(cursor.column>end.column||cursor.column>=cells->width()){
 		cursor.column=begin.column;
 		cursor.row++;
 		if(cursor.row>end.row){
@@ -272,6 +272,28 @@ set<CellAddress> Spreadsheet::recursiveUpdate(CellAddress addr,
 	return seen;
 }
 
+set<CellAddress> Spreadsheet::propagateError(CellAddress addr) noexcept {
+	Cell &cell=cells[addr];
+	const string &errString=cell.getDisplayString().substr(4); //strip "ERR:"
+	set<CellAddress> seen;
+	seen.insert(addr);
+	set<CellAddress> revdeps=cell.getReverseDependencies();
+	while(revdeps.size()){
+		set<CellAddress> newrevdeps;
+		for(CellAddress revdepaddr : revdeps){
+			if(!seen.insert(revdepaddr).second){
+				continue;
+			}
+			Cell &revdepcell=cells[revdepaddr];
+			revdepcell.setError(errString);
+			const set<CellAddress> d=revdepcell.getReverseDependencies();
+			newrevdeps.insert(d.begin(),d.end());
+		}
+		revdeps=move(newrevdeps);
+	}
+	return seen;
+}
+
 void Spreadsheet::attachRevdeps(const vector<CellAddress> &depaddrs,CellAddress dest) noexcept {
 	for(const CellAddress &depaddr : depaddrs){
 		if(inBounds(depaddr)){
@@ -321,9 +343,8 @@ Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string rep
 	if(!circularrefs){
 		return changed;
 	}
-	detachRevdeps(newcelldeps,addr); //an error occured, so remove the revdeps again
 	cell.setError("Circular reference chain");
-	return recursiveUpdate(addr,nullptr,false);
+	return propagateError(addr);
 }
 
 void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){

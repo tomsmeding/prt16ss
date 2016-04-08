@@ -111,5 +111,9 @@ bool CellValueError::update(const CellArray &) noexcept {
 }
 
 vector<CellAddress> CellValueError::getDependencies() const noexcept {
-	return vector<CellAddress>();
+	CellValue *cv=CellValue::cellValueFromString(editString);
+	if(dynamic_cast<CellValueError*>(cv))return vector<CellAddress>();
+	vector<CellAddress> deps=cv->getDependencies();
+	delete cv;
+	return deps;
 }
