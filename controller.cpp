@@ -17,7 +17,8 @@ const unordered_map<string,function<SheetController::CommandRet(SheetController&
 			const string &response = mresponse.fromJust();
 			char res = response.size() == 0 ? 'y' : response[0];
 			if (res == 'Y' || res == 'y') {
-				return commands.at("save")(self);
+				CommandRet ret = commands.at("save")(self);
+				if (ret != CR_OK) return ret;
 			} else if (res != 'N' && res != 'n') {
 				self.view.displayStatusString("Cancelled");
 				return CR_CANCELLED;
