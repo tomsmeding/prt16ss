@@ -82,8 +82,8 @@ const unordered_map<string,function<SheetController::CommandRet(SheetController&
 	{"e",[](SheetController &self){return commands.at("load")(self);}},
 };
 
-SheetController::SheetController(string filename) : sheet(20, 20), view(sheet), fname(filename) {
-	if (!filename.empty()) {
+SheetController::SheetController(string fname) : sheet(20, 20), view(sheet), fname(fname) {
+	if (!fname.empty()) {
 		sheet.loadFromDisk(fname);
 	}
 	view.redraw();
