@@ -1,0 +1,21 @@
+Programmeertechnieken 2016, opdracht 2, Spreadsheet
+
+----
+
+Op de computers in de computerzaal (of een van de linux servers) te compileren
+en uit te voeren met:
+
+$ make
+$ ./main
+
+Dit zou voldoende moeten zijn. De makefile gebruikt standaard de g++ compiler
+versie 5.3.0 aanwezig in de /vol/share/software folder op de linux machines van
+de universiteit. Een andere compiler kan eventueel worden aangegeven door te
+gebruiken:
+
+$ make CXX='/je/andere/compiler -met -wat --flags'
+
+in plaats van gewoon `make`.
+
+
+- Tom Smeding (s1685694), Tim Brouwer (s1663615), Ruben Turkenburg (s1659685)
