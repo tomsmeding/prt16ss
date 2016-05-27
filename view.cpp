@@ -9,6 +9,7 @@ SheetView::SheetView(Spreadsheet &sheet)
 	noecho();
 	keypad(stdscr, TRUE);
 	redraw();
+	set_escdelay(25);
 }
 
 SheetView::~SheetView(){
