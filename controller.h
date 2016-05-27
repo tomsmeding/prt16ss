@@ -18,6 +18,6 @@ public:
 	SheetController();
 	SheetController(string filename);
 	
-	void save();
+	bool save(); //returns whether successful
 	void runloop();
 };

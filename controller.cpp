@@ -8,28 +8,21 @@ SheetController::SheetController(string filename) : sheet(20, 20), view(sheet), 
 	view.redraw();
 }
 
-void SheetController::save() {
+bool SheetController::save() {
 	bool success;
-	if (!fname.empty()) {
-		Maybe<string> mfname = view.askStringOfUser("Filename to save to:", fname);
-		if (mfname.isNothing()) {
-			return;
-		}
-		fname = mfname.fromJust();
-		success = sheet.saveToDisk(fname);
-	} else {
-		Maybe<string> mfname = view.askStringOfUser("Filename to save to:", "");
-		if (mfname.isNothing()) {
-			return;
-		}
-		fname = mfname.fromJust();
-		success = sheet.saveToDisk(fname);
+	Maybe<string> mfname = view.askStringOfUser("File to save to:", "");
+	if (mfname.isNothing()) {
+		return false;
 	}
+	fname = mfname.fromJust();
+	success = sheet.saveToDisk(fname);
+
 	if (!success) {
-		view.displayStatusString("Save was unsuccessful. Please try again.");
+		view.displayStatusString("Error while saving!");
 	} else {
-		view.displayStatusString("Saved successfully!");
+		view.displayStatusString("Saved.");
 	}
+	return success;
 }
 
 void SheetController::runloop() {
@@ -37,23 +30,15 @@ void SheetController::runloop() {
 		switch(view.getChar()) {
 			case 'l': {
 				bool success;
-				if (!fname.empty()) {
-					Maybe<string> mfname = view.askStringOfUser("Filename to load from:", fname);
-					if (mfname.isNothing()) {
-						break;
-					}
-					fname = mfname.fromJust();
-					success = sheet.loadFromDisk(fname);
-				} else {
-					Maybe<string> mfname = view.askStringOfUser("Filename to load from:", "");
-					if (mfname.isNothing()) {
-						break;
-					}
-					fname = mfname.fromJust();
-					success = sheet.loadFromDisk(fname);
+				Maybe<string> mfname = view.askStringOfUser("File to load from:", "");
+				if (mfname.isNothing()) {
+					break;
 				}
+				fname = mfname.fromJust();
+				success = sheet.loadFromDisk(fname);
+
 				if (!success) {
-					view.displayStatusString("Load was unsuccessful. Please try again.");
+					view.displayStatusString("Error while loading!");
 				}
 				view.redraw();
 				break;
@@ -66,12 +51,18 @@ void SheetController::runloop() {
 				
 			case 'q': {
 				//Ask the user to save before return? Default value still needs to be set
-				Maybe<string> mresponse = view.askStringOfUser("Would you like to save? (y/n)", "y");
+				Maybe<string> mresponse = view.askStringOfUser("Would you like to save? (Y/n)", "");
 				if (mresponse.isNothing()) {
+					view.displayStatusString("Cancelled");
 					break;
 				}
-				if (mresponse.fromJust() == "y") {
-					save();
+				const string &response = mresponse.fromJust();
+				char res = response.size() == 0 ? 'y' : response[0];
+				if (res == 'Y' || res == 'y') {
+					if (!save()) break;
+				} else if (res != 'N' && res != 'n') {
+					view.displayStatusString("Cancelled");
+					break;
 				}
 				return;
 			}
