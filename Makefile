@@ -1,4 +1,4 @@
-CXX = /vol/share/software/gcc/5.3.0/bin/g++ -Wl,--rpath=/vol/share/software/gcc/5.3.0/lib64
+CXX = g++
 CXXFLAGS = -Wall -Wextra -std=c++14 -O2
 LDFLAGS = -lncurses
 BIN = main
