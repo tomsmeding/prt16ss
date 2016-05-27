@@ -150,19 +150,23 @@ void SheetController::runloop() {
 					beep();
 					break;
 				}
-				Maybe<string> currval = sheet.getCellEditString(view.getCursorPosition());
+				CellAddress curpos = view.getCursorPosition();
+				Maybe<string> currval = sheet.getCellEditString(curpos);
 				if (currval.isNothing()) break;
 				string currvalstring = currval.fromJust();
 				if (keychar != '\n') {
 					currvalstring = string(1, keychar);
 				}
-				Maybe<string> editval = view.getStringWithEditWindowOverCell(view.getCursorPosition(), currvalstring);
+				Maybe<string> editval = view.getStringWithEditWindowOverCell(curpos, currvalstring);
 				if (editval.isNothing()) break;
 				string editvalstring = editval.fromJust();
-				set<CellAddress> changed = sheet.changeCellValue(view.getCursorPosition(), editvalstring).fromJust();
+				set<CellAddress> changed = sheet.changeCellValue(curpos, editvalstring).fromJust();
 				for (CellAddress cell : changed) {
 					view.redrawCell(cell);
 				}
+
+				curpos.row++;
+				view.setCursorPosition(curpos);
 				break;
 			}
 		}
