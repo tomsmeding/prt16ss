@@ -14,12 +14,18 @@ private:
 	SheetView view;
 	string fname;
 
-	static const unordered_map<string,function<void(Spreadsheet&,SheetView&)>> commands;
-	
+	enum CommandRet {
+		CR_OK,
+		CR_FAIL,
+		CR_CANCELLED,
+		CR_QUIT
+	};
+
+	static const unordered_map<string,function<CommandRet(SheetController&)>> commands;
+
 public:
 	SheetController();
 	SheetController(string filename);
-	
-	bool save(); //returns whether successful
+
 	void runloop();
 };

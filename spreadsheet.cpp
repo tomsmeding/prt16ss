@@ -153,7 +153,7 @@ revdepsOutside, followed by them, in pairs.
 Finally all the cells, in row-major order.
 */
 
-bool Spreadsheet::saveToDisk(string fname) const {
+bool Spreadsheet::saveToDisk(string fname) {
 	ofstream out(fname);
 	if(out.fail())return false;
 	unsigned int x,y,w=getWidth(),h=getHeight();
@@ -176,6 +176,7 @@ bool Spreadsheet::saveToDisk(string fname) const {
 		}
 	}
 	out.close();
+	changedSinceSave=false;
 	return true;
 }
 
@@ -209,6 +210,7 @@ bool Spreadsheet::loadFromDisk(string fname){
 		recursiveUpdate(CellAddress(y,x),nullptr,true);
 	}
 	in.close();
+	changedSinceSave=false;
 	return true;
 }
 
@@ -325,6 +327,7 @@ void Spreadsheet::detachRevdeps(const vector<CellAddress> &depaddrs,CellAddress 
 
 Maybe<set<CellAddress>> Spreadsheet::changeCellValue(CellAddress addr,string repr) noexcept {
 	if(!inBounds(addr))return Nothing();
+	changedSinceSave=true;
 	Cell &cell=cells[addr];
 	detachRevdeps(cell.getDependencies(),addr);
 	cell.setEditString(repr);
@@ -356,4 +359,8 @@ void Spreadsheet::ensureSheetSize(unsigned int width,unsigned int height){
 	for(const CellAddress &addr : toerase){
 		revdepsOutside.erase(revdepsOutside.find(addr));
 	}
+}
+
+bool Spreadsheet::isClobbered() const noexcept {
+	return changedSinceSave;
 }

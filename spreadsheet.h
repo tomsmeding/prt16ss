@@ -78,6 +78,8 @@ public:
 class Spreadsheet{
 	CellArray cells;
 
+	bool changedSinceSave=false;
+
 	//reverse dependencies outside of allocated area
 	//key is cell that is depended on by the value
 	unordered_map<CellAddress,set<CellAddress>> revdepsOutside;
@@ -113,7 +115,7 @@ public:
 
 	//functions for saving and loading to/from files;
 	//return whether successful
-	bool saveToDisk(string fname) const;
+	bool saveToDisk(string fname);
 	bool loadFromDisk(string fname);
 
 	//gets display string for that cell (Nothing if out of bounds)
@@ -128,4 +130,7 @@ public:
 	//ensures that the sheet is at least the given size;
 	//useful for safe querying
 	void ensureSheetSize(unsigned int width,unsigned int height);
+
+	//returns whether the sheet has changed since last saveToDisk
+	bool isClobbered() const noexcept;
 };

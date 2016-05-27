@@ -5,10 +5,80 @@
 
 using namespace std;
 
-const unordered_map<string,function<void(Spreadsheet&,SheetView&)>> SheetController::commands={
-	{"test",[](Spreadsheet&,SheetView &view){
-		view.displayStatusString("Test!");
-	}}
+const unordered_map<string,function<SheetController::CommandRet(SheetController&)>> SheetController::commands={
+	{"quit",[](SheetController &self){
+		if (self.sheet.isClobbered()) {
+			Maybe<string> mresponse =
+				self.view.askStringOfUser("Would you like to save? (Y/n)", "", true, true);
+			if (mresponse.isNothing()) {
+				self.view.displayStatusString("Cancelled");
+				return CR_CANCELLED;
+			}
+			const string &response = mresponse.fromJust();
+			char res = response.size() == 0 ? 'y' : response[0];
+			if (res == 'Y' || res == 'y') {
+				return commands.at("save")(self);
+			} else if (res != 'N' && res != 'n') {
+				self.view.displayStatusString("Cancelled");
+				return CR_CANCELLED;
+			}
+		}
+		return CR_QUIT;
+	}},
+	{"q",[](SheetController &self){return commands.at("quit")(self);}},
+
+	{"save",[](SheetController &self){
+		bool success;
+		Maybe<string> mfname = self.view.askStringOfUser("File to save to:", self.fname);
+		if (mfname.isNothing()) {
+			return CR_CANCELLED;
+		}
+		self.fname = mfname.fromJust();
+		success = self.sheet.saveToDisk(self.fname);
+
+		if (!success) {
+			self.view.displayStatusString("Error while saving!");
+			return CR_FAIL;
+		} else {
+			self.view.displayStatusString("Saved.");
+			return CR_OK;
+		}
+	}},
+	{"s",[](SheetController &self){return commands.at("save")(self);}},
+	{"write",[](SheetController &self){return commands.at("save")(self);}},
+	{"w",[](SheetController &self){return commands.at("save")(self);}},
+
+	{"load",[](SheetController &self){
+		if (self.sheet.isClobbered()) {
+			Maybe<string> mresponse = self.view.askStringOfUser("Save unsaved changes before loading? (Y/n) ", "", true, true);
+			if (mresponse.isNothing() || mresponse.fromJust().size() == 0) {
+				return CR_CANCELLED;
+			}
+			const char res = mresponse.fromJust()[0];
+			if (res != 'n' && res != 'N') {
+				if (commands.at("save")(self) == CR_CANCELLED) {
+					return CR_CANCELLED;
+				}
+			}
+		}
+		bool success;
+		Maybe<string> mfname = self.view.askStringOfUser("File to load from:", self.fname);
+		if (mfname.isNothing()) {
+			return CR_CANCELLED;
+		}
+		self.fname = mfname.fromJust();
+		success = self.sheet.loadFromDisk(self.fname);
+
+		if (!success) {
+			self.view.displayStatusString("Error while loading!");
+			return CR_FAIL;
+		}
+		self.view.redraw();
+		return CR_OK;
+	}},
+	{"l",[](SheetController &self){return commands.at("load")(self);}},
+	{"edit",[](SheetController &self){return commands.at("load")(self);}},
+	{"e",[](SheetController &self){return commands.at("load")(self);}},
 };
 
 SheetController::SheetController(string filename) : sheet(20, 20), view(sheet), fname(filename) {
@@ -18,66 +88,10 @@ SheetController::SheetController(string filename) : sheet(20, 20), view(sheet), 
 	view.redraw();
 }
 
-bool SheetController::save() {
-	bool success;
-	Maybe<string> mfname = view.askStringOfUser("File to save to:", "");
-	if (mfname.isNothing()) {
-		return false;
-	}
-	fname = mfname.fromJust();
-	success = sheet.saveToDisk(fname);
-
-	if (!success) {
-		view.displayStatusString("Error while saving!");
-	} else {
-		view.displayStatusString("Saved.");
-	}
-	return success;
-}
-
 void SheetController::runloop() {
 	while(true) {
-		switch(view.getChar()) {
-			case 'l': {
-				bool success;
-				Maybe<string> mfname = view.askStringOfUser("File to load from:", "");
-				if (mfname.isNothing()) {
-					break;
-				}
-				fname = mfname.fromJust();
-				success = sheet.loadFromDisk(fname);
-
-				if (!success) {
-					view.displayStatusString("Error while loading!");
-				}
-				view.redraw();
-				break;
-			}
-
-			case 's': {
-				save();
-				break;
-			}
-
-			case 'q': {
-				//Ask the user to save before return?
-				Maybe<string> mresponse =
-					view.askStringOfUser("Would you like to save? (Y/n)", "", true, true);
-				if (mresponse.isNothing()) {
-					view.displayStatusString("Cancelled");
-					break;
-				}
-				const string &response = mresponse.fromJust();
-				char res = response.size() == 0 ? 'y' : response[0];
-				if (res == 'Y' || res == 'y') {
-					if (!save()) break;
-				} else if (res != 'N' && res != 'n') {
-					view.displayStatusString("Cancelled");
-					break;
-				}
-				return;
-			}
-
+		const int keychar = view.getChar();
+		switch(keychar) {
 			case ':': {
 				Maybe<string> mcommand = view.askStringOfUser(":", "", false);
 				if (mcommand.isNothing()) break;
@@ -86,7 +100,9 @@ void SheetController::runloop() {
 					view.displayStatusString("Command '" + mcommand.fromJust() + "' not found!");
 					break;
 				}
-				it->second(sheet,view);
+				if (it->second(*this) == CR_QUIT) {
+					return;
+				}
 				break;
 			}
 
@@ -128,10 +144,17 @@ void SheetController::runloop() {
 				break;
 			}
 
-			case '\n': {
+			default: {
+				if (keychar != '\n' && (keychar < 32 || keychar > 126)) {
+					beep();
+					break;
+				}
 				Maybe<string> currval = sheet.getCellEditString(view.getCursorPosition());
 				if (currval.isNothing()) break;
 				string currvalstring = currval.fromJust();
+				if (keychar != '\n') {
+					currvalstring = string(1, keychar);
+				}
 				Maybe<string> editval = view.getStringWithEditWindowOverCell(view.getCursorPosition(), currvalstring);
 				if (editval.isNothing()) break;
 				string editvalstring = editval.fromJust();
@@ -139,10 +162,6 @@ void SheetController::runloop() {
 				for (CellAddress cell : changed) {
 					view.redrawCell(cell);
 				}
-				break;
-			}
-
-			default: {
 				break;
 			}
 		}
