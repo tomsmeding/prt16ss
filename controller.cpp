@@ -53,15 +53,16 @@ void SheetController::runloop() {
 				view.redraw();
 				break;
 			}
-				
+
 			case 's': {
 				save();
 				break;
 			}
-				
+
 			case 'q': {
-				//Ask the user to save before return? Default value still needs to be set
-				Maybe<string> mresponse = view.askStringOfUser("Would you like to save? (Y/n)", "");
+				//Ask the user to save before return?
+				Maybe<string> mresponse =
+					view.askStringOfUser("Would you like to save? (Y/n)", "", true, true);
 				if (mresponse.isNothing()) {
 					view.displayStatusString("Cancelled");
 					break;

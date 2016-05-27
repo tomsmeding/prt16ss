@@ -121,7 +121,7 @@ CellAddress SheetView::getCursorPosition(){
 	return cursor;
 }
 
-Maybe<string> SheetView::getTextBoxString(int wid,string buffer){
+Maybe<string> SheetView::getTextBoxString(int wid,string buffer,bool onechar){
 	int storey,storex;
 	getyx(stdscr,storey,storex);
 	for(int i=0;i<wid;i++)addch(' ');
@@ -143,6 +143,7 @@ Maybe<string> SheetView::getTextBoxString(int wid,string buffer){
 			if((int)buffer.size()<wid){
 				buffer+=(char)c;
 				addch((char)c);
+				if(onechar)break;
 			}
 		}
 	}
@@ -159,14 +160,15 @@ Maybe<string> SheetView::getStringWithEditWindowOverCell(CellAddress loc,string 
 	return ret;
 }
 
-Maybe<string> SheetView::askStringOfUser(string prompt,string prefilled){
+Maybe<string> SheetView::askStringOfUser(string prompt,string prefilled,
+                                         bool spacesep,bool onechar){
 	int storey,storex;
 	getyx(stdscr,storey,storex);
 	move(LINES-1,0);
 	if((int)prompt.size()>=COLS-10)prompt.erase(prompt.begin()+COLS-10,prompt.end());
 	addstr(prompt.data());
-	addch(' ');
-	Maybe<string> ret=getTextBoxString(COLS-prompt.size()-1,prefilled);
+	if(spacesep)addch(' ');
+	Maybe<string> ret=getTextBoxString(COLS-prompt.size()-spacesep,prefilled,onechar);
 	move(storey,storex);
 	return ret;
 }

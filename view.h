@@ -36,7 +36,10 @@ public:
 
 	//asks a string of the user in the status bar, with
 	//specified prompt and default (pre-filled) value
-	Maybe<string> askStringOfUser(string prompt,string prefilled);
+	//spacesep specifies whether to separate prompt and textbox with a space
+	//onechar specifies whether to immediately return after the first character is entered
+	Maybe<string> askStringOfUser(string prompt,string prefilled,
+	                              bool spacesep=true,bool onechar=false);
 
 	void displayStatusString(string s); //displays s in the status bar
 
@@ -52,5 +55,6 @@ private:
 
 	void drawBoxAround(int x,int y,int w,int h);
 
-	Maybe<string> getTextBoxString(int wid,string buffer);
+	//onechar as in askStringOfUser
+	Maybe<string> getTextBoxString(int wid,string buffer,bool onechar=false);
 };
