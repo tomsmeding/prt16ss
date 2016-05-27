@@ -137,6 +137,7 @@ void SheetController::runloop() {
 				break;
 			}
 
+			case 127:  //for osx
 			case KEY_BACKSPACE: {
 				set<CellAddress> changed = sheet.changeCellValue(view.getCursorPosition(), "").fromJust();
 				for (CellAddress cell : changed) {
