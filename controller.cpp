@@ -1,5 +1,15 @@
+#include <unordered_map>
+#include <functional>
 #include <ncurses.h>
 #include "controller.h"
+
+using namespace std;
+
+const unordered_map<string,function<void(Spreadsheet&,SheetView&)>> SheetController::commands={
+	{"test",[](Spreadsheet&,SheetView &view){
+		view.displayStatusString("Test!");
+	}}
+};
 
 SheetController::SheetController(string filename) : sheet(20, 20), view(sheet), fname(filename) {
 	if (!filename.empty()) {
@@ -66,7 +76,19 @@ void SheetController::runloop() {
 				}
 				return;
 			}
-				
+
+			case ':': {
+				Maybe<string> mcommand = view.askStringOfUser(":", "", false);
+				if (mcommand.isNothing()) break;
+				auto it = commands.find(mcommand.fromJust());
+				if (it == commands.end()) {
+					view.displayStatusString("Command '" + mcommand.fromJust() + "' not found!");
+					break;
+				}
+				it->second(sheet,view);
+				break;
+			}
+
 			case KEY_UP: {
 				CellAddress addr = view.getCursorPosition();
 				if (addr.row == 0) break;

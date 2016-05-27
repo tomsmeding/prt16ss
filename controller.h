@@ -13,6 +13,8 @@ private:
 	Spreadsheet sheet;
 	SheetView view;
 	string fname;
+
+	static const unordered_map<string,function<void(Spreadsheet&,SheetView&)>> commands;
 	
 public:
 	SheetController();
