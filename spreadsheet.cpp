@@ -1,5 +1,3 @@
-// Tom Smeding (s1685694), Tim Brouwer (s1663615), Ruben Turkenburg (s1659685)
-
 #include "cell.h"
 #include "spreadsheet.h"
 #include "util.h"
