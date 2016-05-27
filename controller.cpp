@@ -69,38 +69,34 @@ void SheetController::runloop() {
 				
 			case KEY_UP: {
 				CellAddress addr = view.getCursorPosition();
-				if (addr.row == 0) {
-					break;
-				}
+				if (addr.row == 0) break;
 				addr.row -= 1;
 				view.setCursorPosition(addr);
 				break;
 			}
-			
+
 			case KEY_DOWN: {
 				CellAddress addr = view.getCursorPosition();
 				addr.row += 1;
 				view.setCursorPosition(addr);
 				break;
 			}
-				
+
 			case KEY_LEFT: {
 				CellAddress addr = view.getCursorPosition();
-				if (addr.column == 0) {
-					break;
-				}
+				if (addr.column == 0) break;
 				addr.column -= 1;
 				view.setCursorPosition(addr);
 				break;
 			}
-				
+
 			case KEY_RIGHT: {
 				CellAddress addr = view.getCursorPosition();
 				addr.column += 1;
 				view.setCursorPosition(addr);
 				break;
 			}
-				
+
 			case KEY_BACKSPACE: {
 				set<CellAddress> changed = sheet.changeCellValue(view.getCursorPosition(), "").fromJust();
 				for (CellAddress cell : changed) {
@@ -108,17 +104,13 @@ void SheetController::runloop() {
 				}
 				break;
 			}
-			
+
 			case '\n': {
 				Maybe<string> currval = sheet.getCellEditString(view.getCursorPosition());
-				if (currval.isNothing()) {
-					break;
-				}
+				if (currval.isNothing()) break;
 				string currvalstring = currval.fromJust();
 				Maybe<string> editval = view.getStringWithEditWindowOverCell(view.getCursorPosition(), currvalstring);
-				if (editval.isNothing()) {
-					break;
-				}
+				if (editval.isNothing()) break;
 				string editvalstring = editval.fromJust();
 				set<CellAddress> changed = sheet.changeCellValue(view.getCursorPosition(), editvalstring).fromJust();
 				for (CellAddress cell : changed) {
@@ -126,7 +118,7 @@ void SheetController::runloop() {
 				}
 				break;
 			}
-				
+
 			default: {
 				break;
 			}
